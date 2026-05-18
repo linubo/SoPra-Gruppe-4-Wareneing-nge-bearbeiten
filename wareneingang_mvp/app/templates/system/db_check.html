@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Datenbankcheck - Wareneingangssystem{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Datenbankcheck</h2>
+
+    <p>
+        <strong>Aktiver Datenbankmodus:</strong> {{ database_mode }}<br>
+        <strong>Datenbank:</strong> {{ database_label }}
+    </p>
+
+    {% if database_ok %}
+        <p class="success">
+            {{ message }}
+        </p>
+    {% else %}
+        <p class="error">
+            Datenbankverbindung fehlgeschlagen.
+        </p>
+
+        <pre class="message-preview">{{ message }}</pre>
+    {% endif %}
+</section>
+
+<section class="card">
+    <h3>Hinweis</h3>
+
+    <p>
+        Im Modus <strong>sqlite</strong> nutzt das System die lokale Entwicklungsdatenbank.
+        Im Modus <strong>sqlserver</strong> wird versucht, eine Verbindung zum SQL Server
+        aus der .env-Datei aufzubauen.
+    </p>
+
+    <p>
+        Auf dem SQL Server werden keine Tabellen automatisch erzeugt.
+        Das schützt die echte Datenbank vor versehentlichen Änderungen.
+    </p>
+</section>
+{% endblock %}

@@ -7,7 +7,10 @@
     <h2>Lieferantenrechnung {{ invoice.invoice_number }}</h2>
 
     <p>
-        <strong>Status:</strong> {{ invoice.status }}<br>
+        <strong>Status:</strong>
+            <span class="status-badge status-{{ invoice.status|lower }}">
+                {{ invoice.status }}
+        </span><br>
         <strong>Lieferant:</strong> {{ invoice.supplier.name }}<br>
         <strong>Wareneingang:</strong>
         <a href="{{ url_for('main.goods_receipt_detail', receipt_id=invoice.goods_receipt.id) }}">

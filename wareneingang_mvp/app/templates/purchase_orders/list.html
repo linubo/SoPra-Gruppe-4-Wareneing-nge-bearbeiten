@@ -18,20 +18,25 @@
 
     <p>
         <strong>Lieferant:</strong> {{ order.supplier.name }}<br>
-        <strong>Status:</strong> {{ order.status }}<br>
+        <strong>Status:</strong>
+        <span class="status-badge status-{{ order.status|lower }}">
+            {{ order.status }}
+        </span><br>
         <strong>Bestellmenge gesamt:</strong> {{ order.total_ordered_quantity }}<br>
         <strong>Bereits geliefert:</strong> {{ order.total_received_quantity }}<br>
         <strong>Noch offen:</strong> {{ order.total_open_quantity }}
     </p>
 
-    <p>
-        <a
-            href="{{ url_for('main.create_goods_receipt_view', order_id=order.id) }}"
-            class="button"
-        >
-            Wareneingang erfassen
-        </a>
-    </p>
+    {% if session.get("user_role", "lager") == "lager" and order.total_open_quantity > 0 %}
+        <p>
+            <a
+                href="{{ url_for('main.create_goods_receipt_view', order_id=order.id) }}"
+                class="button"
+            >
+                Wareneingang erfassen
+            </a>
+        </p>
+    {% endif %}
 
     <table>
         <tr>

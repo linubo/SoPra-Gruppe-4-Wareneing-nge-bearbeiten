@@ -33,7 +33,11 @@
                 <td>{{ receipt.purchase_order.po_number }}</td>
                 <td>{{ receipt.purchase_order.supplier.name }}</td>
                 <td>{{ receipt.receipt_date.strftime("%d.%m.%Y %H:%M") }}</td>
-                <td>{{ receipt.status }}</td>
+                <td>
+                    <span class="status-badge status-{{ receipt.status|lower }}">
+                        {{ receipt.status }}
+                    </span>
+                </td>
                 <td>
                     <a href="{{ url_for('main.goods_receipt_detail', receipt_id=receipt.id) }}">
                         Details

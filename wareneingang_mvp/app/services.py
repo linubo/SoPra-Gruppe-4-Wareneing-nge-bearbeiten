@@ -6,7 +6,8 @@ from app.models import (
     ComponentMovement,
     SupplierInvoice,
     SupplierInvoiceItem,
-    EventLog
+    EventLog,
+    ReturnNotification
 )
 
 
@@ -14,6 +15,19 @@ def generate_receipt_number():
     next_number = GoodsReceipt.query.count() + 1
     current_year = datetime.now().year
     return f"WE-{current_year}-{next_number:03d}"
+
+
+def suggest_condition(received_quantity, open_quantity):
+    if received_quantity == 0:
+        return "PRUEFUNG_AUSSTEHEND"
+
+    if received_quantity < open_quantity:
+        return "UNVOLLSTAENDIG"
+
+    if received_quantity > open_quantity:
+        return "UEBERLIEFERUNG"
+
+    return "WARE_OK"
 
 
 def create_goods_receipt(order, form_data):
@@ -39,8 +53,14 @@ def create_goods_receipt(order, form_data):
 
         condition = form_data.get(
             f"condition_{order_item.id}",
-            "PRUEFUNG_AUSSTEHEND"
+            "AUTO"
         )
+
+        if condition == "AUTO":
+            condition = suggest_condition(
+                received_quantity,
+                order_item.open_quantity
+            )
 
         if received_quantity < 0:
             raise ValueError("Die gelieferte Menge darf nicht negativ sein.")
@@ -115,7 +135,39 @@ def create_return_for_goods_receipt(receipt):
     if receipt.status != "IN_KLAERUNG":
         raise ValueError("Eine Retoure kann nur aus dem Status IN_KLAERUNG veranlasst werden.")
 
+    if receipt.return_notification is not None:
+        raise ValueError("Für diesen Wareneingang existiert bereits eine Retourenmeldung.")
+
+    reason = build_return_reason(receipt)
+    message = build_return_message(receipt, reason)
+
+    return_notification = ReturnNotification(
+        return_number=generate_return_number(),
+        goods_receipt_id=receipt.id,
+        supplier_id=receipt.purchase_order.supplier_id,
+        reason=reason,
+        message=message,
+        status="ERSTELLT"
+    )
+
+    db.session.add(return_notification)
+
     receipt.status = "RETOURE_VERANLASST"
+
+    log_event(
+        "GoodsReceipt",
+        receipt.id,
+        "RETURN",
+        f"Für Wareneingang {receipt.receipt_number} wurde eine Retoure veranlasst."
+    )
+
+    log_event(
+        "ReturnNotification",
+        receipt.id,
+        "CREATE",
+        f"Retourenmeldung {return_notification.return_number} wurde erstellt."
+    )
+
     db.session.commit()
 
 
@@ -154,6 +206,52 @@ def book_goods_receipt(receipt):
     db.session.commit()
 
 
+def cancel_booked_goods_receipt(receipt):
+    if receipt.status != "WARENEINGANG_GEBUCHT":
+        raise ValueError("Nur gebuchte Wareneingänge können storniert werden.")
+
+    if receipt.supplier_invoice is not None:
+        raise ValueError(
+            "Dieser Wareneingang kann nicht storniert werden, "
+            "weil bereits eine Lieferantenrechnung existiert."
+        )
+
+    for item in receipt.items:
+        component = item.purchase_order_item.component
+
+        if component.stock < item.received_quantity:
+            raise ValueError(
+                f"Storno nicht möglich: Der Lagerbestand von {component.name} "
+                f"ist kleiner als die zu stornierende Menge."
+            )
+
+    for item in receipt.items:
+        component = item.purchase_order_item.component
+        component.stock -= item.received_quantity
+
+        movement = ComponentMovement(
+            goods_receipt_id=receipt.id,
+            component_id=component.id,
+            quantity=item.received_quantity,
+            movement_type="OUT"
+        )
+
+        db.session.add(movement)
+
+    receipt.status = "STORNIERT"
+
+    update_purchase_order_status(receipt.purchase_order)
+
+    log_event(
+        "GoodsReceipt",
+        receipt.id,
+        "CANCEL",
+        f"Wareneingang {receipt.receipt_number} wurde storniert. "
+        f"Der Lagerbestand wurde durch eine OUT-Bewegung reduziert."
+    )
+
+    db.session.commit()
+
 def update_purchase_order_status(order):
     if order.total_open_quantity == 0:
         order.status = "ABGESCHLOSSEN"
@@ -167,6 +265,52 @@ def generate_invoice_number():
     next_number = SupplierInvoice.query.count() + 1
     current_year = datetime.now().year
     return f"RE-{current_year}-{next_number:03d}"
+
+def generate_return_number():
+    next_number = ReturnNotification.query.count() + 1
+    current_year = datetime.now().year
+    return f"RET-{current_year}-{next_number:03d}"
+
+
+def build_return_reason(receipt):
+    conditions = []
+
+    for item in receipt.items:
+        if item.condition != "WARE_OK":
+            conditions.append(item.condition)
+
+    if not conditions:
+        return "Retoure nach Klärung"
+
+    unique_conditions = sorted(set(conditions))
+    return ", ".join(unique_conditions)
+
+
+def build_return_message(receipt, reason):
+    supplier = receipt.purchase_order.supplier
+
+    lines = [
+        f"Retourenmeldung für Wareneingang {receipt.receipt_number}",
+        "",
+        f"Lieferant: {supplier.name}",
+        f"Bestellung: {receipt.purchase_order.po_number}",
+        f"Grund: {reason}",
+        "",
+        "Betroffene Positionen:"
+    ]
+
+    for item in receipt.items:
+        lines.append(
+            f"- {item.purchase_order_item.component.name}: "
+            f"{item.received_quantity} Stück, Zustand: {item.condition}"
+        )
+
+    lines.extend([
+        "",
+        "Bitte prüfen Sie die Lieferung und stimmen Sie das weitere Vorgehen mit uns ab."
+    ])
+
+    return "\n".join(lines)
 
 def parse_amount(value):
     return float(value.replace(",", "."))
@@ -289,6 +433,50 @@ def transmit_supplier_invoice(invoice):
         invoice.id,
         "TRANSMIT",
         f"Lieferantenrechnung {invoice.invoice_number} wurde an die Buchhaltung übermittelt."
+    )
+
+    db.session.commit()
+def update_goods_receipt_conditions_after_clarification(receipt, form_data):
+    if receipt.status != "IN_KLAERUNG":
+        raise ValueError("Klärungsergebnisse können nur im Status IN_KLAERUNG geändert werden.")
+
+    for item in receipt.items:
+        new_condition = form_data.get(f"condition_{item.id}")
+
+        if new_condition not in [
+            "WARE_OK",
+            "BESCHAEDIGT",
+            "FALSCHLIEFERUNG",
+            "UNVOLLSTAENDIG",
+            "UEBERLIEFERUNG",
+            "KOMBINIERTE_ABWEICHUNG",
+            "PRUEFUNG_AUSSTEHEND"
+        ]:
+            raise ValueError("Ungültiger Zustand ausgewählt.")
+
+        item.condition = new_condition
+
+    log_event(
+        "GoodsReceipt",
+        receipt.id,
+        "CLARIFICATION_UPDATE",
+        f"Klärungsergebnis für Wareneingang {receipt.receipt_number} wurde aktualisiert."
+    )
+
+    db.session.commit()
+
+def send_return_notification(return_notification):
+    if return_notification.status != "ERSTELLT":
+        raise ValueError("Nur erstellte Retourenmeldungen können gesendet werden.")
+
+    return_notification.status = "AN_LIEFERANT_GESENDET"
+    return_notification.sent_at = datetime.now()
+
+    log_event(
+        "ReturnNotification",
+        return_notification.id,
+        "SEND",
+        f"Retourenmeldung {return_notification.return_number} wurde an den Lieferanten gesendet."
     )
 
     db.session.commit()

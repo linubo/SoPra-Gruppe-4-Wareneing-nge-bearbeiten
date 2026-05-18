@@ -15,6 +15,7 @@ def create_app():
     app.register_blueprint(main)
 
     with app.app_context():
-        db.create_all()
+        if app.config.get("AUTO_CREATE_TABLES", False):
+            db.create_all()
 
     return app

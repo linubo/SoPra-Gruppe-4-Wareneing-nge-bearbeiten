@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Retourenmeldungen - Wareneingangssystem{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Retourenmeldungen</h2>
+
+    <p>
+        Hier werden alle Retourenmeldungen angezeigt, die durch das Management
+        nach einer Klärung erstellt wurden.
+    </p>
+
+    {% if notifications %}
+        <table>
+            <tr>
+                <th>Retourennummer</th>
+                <th>Wareneingang</th>
+                <th>Lieferant</th>
+                <th>Grund</th>
+                <th>Status</th>
+                <th>Erstellt am</th>
+                <th>Aktion</th>
+            </tr>
+
+            {% for notification in notifications %}
+            <tr>
+                <td>{{ notification.return_number }}</td>
+                <td>{{ notification.goods_receipt.receipt_number }}</td>
+                <td>{{ notification.supplier.name }}</td>
+                <td>{{ notification.reason }}</td>
+                <td>
+                    <span class="status-badge status-{{ notification.status|lower }}">
+                        {{ notification.status }}
+                    </span>
+                </td>
+                <td>{{ notification.created_at.strftime("%d.%m.%Y %H:%M") }}</td>
+                <td>
+                    <a href="{{ url_for('main.return_notification_detail', notification_id=notification.id) }}">
+                        Details
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>Noch keine Retourenmeldungen vorhanden.</p>
+    {% endif %}
+</section>
+{% endblock %}

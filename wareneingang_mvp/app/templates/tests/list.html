@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}Testfälle - Wareneingangssystem{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Testfälle</h2>
+
+    <p>
+        Diese Seite dokumentiert zentrale Testfälle für den Prototypen.
+        Die Testfälle orientieren sich an den wichtigsten Statusflüssen,
+        Buchungsregeln, Retouren und Lieferantenrechnungen.
+    </p>
+</section>
+
+<section class="card">
+    <h3>Wareneingang und Statusfluss</h3>
+
+    <table>
+        <tr>
+            <th>Nr.</th>
+            <th>Testfall</th>
+            <th>Schritte</th>
+            <th>Erwartetes Ergebnis</th>
+        </tr>
+
+        <tr>
+            <td>WE-01</td>
+            <td>Wareneingang erfassen</td>
+            <td>
+                Rolle Lager wählen → Bestellung öffnen → Wareneingang erfassen →
+                Menge eintragen → speichern
+            </td>
+            <td>
+                Wareneingang wird mit Status <strong>ERFASST</strong> angelegt.
+                Ein Ereignis wird im Ereignisprotokoll gespeichert.
+            </td>
+        </tr>
+
+        <tr>
+            <td>WE-02</td>
+            <td>Prüfung starten</td>
+            <td>
+                Wareneingang im Status ERFASST öffnen → Prüfung starten
+            </td>
+            <td>
+                Status wechselt auf <strong>IN_PRUEFUNG</strong>.
+            </td>
+        </tr>
+
+        <tr>
+            <td>WE-03</td>
+            <td>Direkte Buchung nur bei Ware OK</td>
+            <td>
+                Wareneingang mit Zustand WARE_OK erfassen → Prüfung starten →
+                Wareneingang buchen
+            </td>
+            <td>
+                Status wechselt auf <strong>WARENEINGANG_GEBUCHT</strong>.
+                Lagerbestand wird erhöht.
+                Bestandsbewegung mit Bewegungsart <strong>IN</strong> wird geschrieben.
+            </td>
+        </tr>
+
+        <tr>
+            <td>WE-04</td>
+            <td>Buchung mit Abweichung verhindern</td>
+            <td>
+                Wareneingang mit Zustand BESCHAEDIGT oder PRUEFUNG_AUSSTEHEND erfassen →
+                Prüfung starten → Wareneingang buchen
+            </td>
+            <td>
+                Buchung wird blockiert.
+                Es erscheint eine Fehlermeldung.
+                Lagerbestand bleibt unverändert.
+            </td>
+        </tr>
+    </table>
+</section>
+
+<section class="card">
+    <h3>Abweichung und Klärung</h3>
+
+    <table>
+        <tr>
+            <th>Nr.</th>
+            <th>Testfall</th>
+            <th>Schritte</th>
+            <th>Erwartetes Ergebnis</th>
+        </tr>
+
+        <tr>
+            <td>AB-01</td>
+            <td>Abweichung dokumentieren</td>
+            <td>
+                Wareneingang mit beschädigter Ware erfassen →
+                Prüfung starten → Mit Abweichung markieren
+            </td>
+            <td>
+                Status wechselt auf <strong>MIT_ABWEICHUNG</strong>.
+            </td>
+        </tr>
+
+        <tr>
+            <td>AB-02</td>
+            <td>In Klärung geben</td>
+            <td>
+                Wareneingang mit Status MIT_ABWEICHUNG öffnen →
+                In Klärung geben
+            </td>
+            <td>
+                Status wechselt auf <strong>IN_KLAERUNG</strong>.
+                Der Fall erscheint im Management-Dashboard.
+            </td>
+        </tr>
+
+        <tr>
+            <td>AB-03</td>
+            <td>Nach Klärung buchen</td>
+            <td>
+                Rolle Management wählen → Wareneingang in Klärung öffnen →
+                Zustand auf WARE_OK setzen → Klärung speichern →
+                Nach Klärung buchen
+            </td>
+            <td>
+                Status wechselt auf <strong>WARENEINGANG_GEBUCHT</strong>.
+                Lagerbestand wird erhöht.
+            </td>
+        </tr>
+
+        <tr>
+            <td>AB-04</td>
+            <td>Retoure veranlassen</td>
+            <td>
+                Rolle Management wählen → Wareneingang in Klärung öffnen →
+                Retoure veranlassen
+            </td>
+            <td>
+                Status wechselt auf <strong>RETOURE_VERANLASST</strong>.
+                Lagerbestand wird nicht erhöht.
+                Eine Retourenmeldung wird erstellt.
+            </td>
+        </tr>
+    </table>
+</section>
+
+<section class="card">
+    <h3>Bestand, Storno und Bewegungen</h3>
+
+    <table>
+        <tr>
+            <th>Nr.</th>
+            <th>Testfall</th>
+            <th>Schritte</th>
+            <th>Erwartetes Ergebnis</th>
+        </tr>
+
+        <tr>
+            <td>BS-01</td>
+            <td>Bestandsbewegung IN prüfen</td>
+            <td>
+                Wareneingang buchen → Bestandsbewegungen öffnen
+            </td>
+            <td>
+                Eine Bewegung mit Bewegungsart <strong>IN</strong> wird angezeigt.
+            </td>
+        </tr>
+
+        <tr>
+            <td>BS-02</td>
+            <td>Gebuchten Wareneingang stornieren</td>
+            <td>
+                Rolle Management wählen → gebuchten Wareneingang ohne Rechnung öffnen →
+                Gebuchten Wareneingang stornieren
+            </td>
+            <td>
+                Status wechselt auf <strong>STORNIERT</strong>.
+                Lagerbestand wird reduziert.
+                Bestandsbewegung mit Bewegungsart <strong>OUT</strong> wird geschrieben.
+            </td>
+        </tr>
+
+        <tr>
+            <td>BS-03</td>
+            <td>Storno mit vorhandener Rechnung verhindern</td>
+            <td>
+                Gebuchten Wareneingang mit bereits erfasster Lieferantenrechnung öffnen →
+                Storno versuchen
+            </td>
+            <td>
+                Storno wird blockiert.
+                Das System zeigt eine Meldung, dass bereits eine Rechnung existiert.
+            </td>
+        </tr>
+    </table>
+</section>
+
+<section class="card">
+    <h3>Lieferantenrechnung</h3>
+
+    <table>
+        <tr>
+            <th>Nr.</th>
+            <th>Testfall</th>
+            <th>Schritte</th>
+            <th>Erwartetes Ergebnis</th>
+        </tr>
+
+        <tr>
+            <td>LR-01</td>
+            <td>Rechnung nur bei gebuchtem Wareneingang</td>
+            <td>
+                Lieferantenrechnung zu einem nicht gebuchten Wareneingang erfassen
+            </td>
+            <td>
+                Erfassung wird blockiert.
+            </td>
+        </tr>
+
+        <tr>
+            <td>LR-02</td>
+            <td>Lieferantenrechnung erfassen</td>
+            <td>
+                Gebuchten Wareneingang öffnen → Lieferantenrechnung erfassen →
+                Positionen mit Preis, Rabatt und MwSt speichern
+            </td>
+            <td>
+                Rechnung wird mit Status <strong>ERFASST</strong> gespeichert.
+                Netto, MwSt und Brutto werden automatisch berechnet.
+            </td>
+        </tr>
+
+        <tr>
+            <td>LR-03</td>
+            <td>Rechnung an Buchhaltung übermitteln</td>
+            <td>
+                Rechnung öffnen → An Buchhaltung übermitteln
+            </td>
+            <td>
+                Status wechselt auf <strong>AN_BUCHHALTUNG_UEBERMITTELT</strong>.
+                Übermittlungsdatum wird gesetzt.
+            </td>
+        </tr>
+
+        <tr>
+            <td>LR-04</td>
+            <td>Doppelte Rechnung verhindern</td>
+            <td>
+                Für denselben Wareneingang erneut eine Rechnung erfassen
+            </td>
+            <td>
+                System verhindert eine zweite Rechnung zu demselben Wareneingang.
+            </td>
+        </tr>
+    </table>
+</section>
+
+<section class="card">
+    <h3>Rollen und Berechtigungen</h3>
+
+    <table>
+        <tr>
+            <th>Nr.</th>
+            <th>Testfall</th>
+            <th>Schritte</th>
+            <th>Erwartetes Ergebnis</th>
+        </tr>
+
+        <tr>
+            <td>RB-01</td>
+            <td>Lager darf Wareneingang erfassen</td>
+            <td>
+                Rolle Lager wählen → Bestellung öffnen
+            </td>
+            <td>
+                Button <strong>Wareneingang erfassen</strong> ist sichtbar.
+            </td>
+        </tr>
+
+        <tr>
+            <td>RB-02</td>
+            <td>Management darf kritische Fälle entscheiden</td>
+            <td>
+                Rolle Management wählen → Wareneingang in Klärung öffnen
+            </td>
+            <td>
+                Management kann nach Klärung buchen oder Retoure veranlassen.
+            </td>
+        </tr>
+
+        <tr>
+            <td>RB-03</td>
+            <td>Unberechtigte Aktion blockieren</td>
+            <td>
+                Rolle Management wählen → direkte Erfassung eines Wareneingangs versuchen
+            </td>
+            <td>
+                Aktion wird blockiert.
+                Es erscheint eine Berechtigungsmeldung.
+            </td>
+        </tr>
+    </table>
+</section>
+
+<section class="card">
+    <h3>Audit / Ereignisprotokoll</h3>
+
+    <table>
+        <tr>
+            <th>Nr.</th>
+            <th>Testfall</th>
+            <th>Schritte</th>
+            <th>Erwartetes Ergebnis</th>
+        </tr>
+
+        <tr>
+            <td>AU-01</td>
+            <td>Ereignisse protokollieren</td>
+            <td>
+                Wareneingang erfassen → Prüfung starten → buchen →
+                Rechnung erfassen → Rechnung übermitteln
+            </td>
+            <td>
+                Alle wichtigen Aktionen erscheinen im Ereignisprotokoll mit Zeitpunkt,
+                Benutzer, Objekt, Aktion und Beschreibung.
+            </td>
+        </tr>
+    </table>
+</section>
+{% endblock %}

@@ -31,12 +31,16 @@
                 <td>{{ receipt.purchase_order.supplier.name }}</td>
                 <td>{{ receipt.status }}</td>
                 <td>
-                    <a
-                        href="{{ url_for('main.create_invoice', receipt_id=receipt.id) }}"
-                        class="button"
-                    >
-                        Rechnung erfassen
-                    </a>
+                    {% if session.get("user_role", "lager") == "lager" %}
+                        <a
+                            href="{{ url_for('main.create_invoice', receipt_id=receipt.id) }}"
+                            class="button"
+                        >
+                            Rechnung erfassen
+                        </a>
+                    {% else %}
+                        Nur Lager
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}
@@ -68,7 +72,11 @@
                 <td>{{ invoice.supplier.name }}</td>
                 <td>{{ invoice.invoice_date.strftime("%d.%m.%Y") }}</td>
                 <td>{{ "%.2f"|format(invoice.total_gross_amount) }} €</td>
-                <td>{{ invoice.status }}</td>
+                <td>
+                    <span class="status-badge status-{{ invoice.status|lower }}">
+                        {{ invoice.status }}
+                    </span>
+                </td>
                 <td>
                     <a href="{{ url_for('main.invoice_detail', invoice_id=invoice.id) }}">
                         Details

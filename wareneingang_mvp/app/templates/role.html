@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Rolle wählen - Wareneingangssystem{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Rolle wählen</h2>
+
+    <p>
+        Für den Prototypen simulieren wir hier die Anmeldung.
+        So kann man testen, welche Aktionen Lager und Management durchführen dürfen.
+    </p>
+
+    <form method="post">
+        <label for="role"><strong>Rolle:</strong></label><br>
+
+        <select id="role" name="role">
+            <option value="lager">Lager</option>
+            <option value="management">Management</option>
+        </select>
+
+        <br><br>
+
+        <button type="submit" class="button">Rolle übernehmen</button>
+    </form>
+</section>
+
+<section class="card">
+    <h3>Berechtigungen</h3>
+
+    <table>
+        <tr>
+            <th>Rolle</th>
+            <th>Darf</th>
+        </tr>
+        <tr>
+            <td>Lager</td>
+            <td>
+                Wareneingänge erfassen, Prüfung starten, Abweichungen markieren,
+                Wareneingänge ohne Abweichung buchen, Rechnungen erfassen und übermitteln.
+            </td>
+        </tr>
+        <tr>
+            <td>Management</td>
+            <td>
+                Alles einsehen, kritische Fälle prüfen, Wareneingänge in Klärung buchen
+                oder Retoure veranlassen.
+            </td>
+        </tr>
+    </table>
+</section>
+{% endblock %}

@@ -89,7 +89,13 @@ class PurchaseOrderItem(db.Model):
 
     @property
     def received_quantity(self):
-        return sum(item.received_quantity for item in self.goods_receipt_items)
+        ignored_statuses = ["STORNIERT", "RETOURE_VERANLASST"]
+
+        return sum(
+            item.received_quantity
+            for item in self.goods_receipt_items
+            if item.goods_receipt.status not in ignored_statuses
+    )
 
     @property
     def open_quantity(self):
@@ -121,6 +127,12 @@ class GoodsReceipt(db.Model):
 
     supplier_invoice = db.relationship(
         "SupplierInvoice",
+        back_populates="goods_receipt",
+        uselist=False
+    )
+
+    return_notification = db.relationship(
+        "ReturnNotification",
         back_populates="goods_receipt",
         uselist=False
     )
@@ -272,3 +284,34 @@ class EventLog(db.Model):
 
     created_by = db.Column(db.String(50), nullable=False, default="demo_user")
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+
+class ReturnNotification(db.Model):
+    __tablename__ = "return_notifications"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    return_number = db.Column(db.String(50), nullable=False, unique=True)
+
+    goods_receipt_id = db.Column(
+        db.Integer,
+        db.ForeignKey("goods_receipts.id"),
+        nullable=False,
+        unique=True
+    )
+
+    supplier_id = db.Column(
+        db.Integer,
+        db.ForeignKey("suppliers.id"),
+        nullable=False
+    )
+
+    reason = db.Column(db.String(255), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+
+    status = db.Column(db.String(50), nullable=False, default="ERSTELLT")
+
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    sent_at = db.Column(db.DateTime)
+
+    goods_receipt = db.relationship("GoodsReceipt", back_populates="return_notification")
+    supplier = db.relationship("Supplier")
