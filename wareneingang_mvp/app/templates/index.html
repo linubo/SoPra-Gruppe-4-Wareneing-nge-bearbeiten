@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Startseite - Wareneingangssystem{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Willkommen</h2>
+
+    <p>
+        Das Systemmodul unterstützt den Prozess vom Wareneingang
+        bis zur Weiterleitung der Lieferantenrechnung an die Buchhaltung.
+    </p>
+
+    <p>
+        Dies ist die erste lauffähige Version der Anwendung.
+    </p>
+</section>
+
+<section class="grid">
+    <div class="card">
+        <h3>Wareneingänge</h3>
+        <p>Hier werden später Wareneingänge erfasst, geprüft und gebucht.</p>
+    </div>
+
+    <div class="card">
+        <h3>Lieferantenrechnungen</h3>
+        <p>Hier werden später Rechnungen erfasst und an die Buchhaltung übermittelt.</p>
+    </div>
+
+    <div class="card">
+        <h3>Lagerbestand</h3>
+        <p>Hier werden später Komponentenbestände und Bewegungen angezeigt.</p>
+    </div>
+</section>
+{% endblock %}

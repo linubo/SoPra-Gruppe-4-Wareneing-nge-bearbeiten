@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Ereignisprotokoll - Wareneingangssystem{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Ereignisprotokoll</h2>
+
+    <p>
+        Hier werden wichtige Systemereignisse protokolliert.
+        So ist nachvollziehbar, was im System passiert ist.
+    </p>
+
+    {% if events %}
+        <table>
+            <tr>
+                <th>Zeitpunkt</th>
+                <th>Benutzer</th>
+                <th>Objekt</th>
+                <th>Objekt-ID</th>
+                <th>Aktion</th>
+                <th>Beschreibung</th>
+            </tr>
+
+            {% for event in events %}
+            <tr>
+                <td>{{ event.created_at.strftime("%d.%m.%Y %H:%M") }}</td>
+                <td>{{ event.created_by }}</td>
+                <td>{{ event.entity_type }}</td>
+                <td>{{ event.entity_id }}</td>
+                <td>{{ event.action }}</td>
+                <td>{{ event.description }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>Noch keine Ereignisse vorhanden.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,125 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f4f6f8;
+    color: #222;
+}
+
+header {
+    background-color: #1f2937;
+    color: white;
+    padding: 20px;
+}
+
+header h1 {
+    margin: 0 0 15px 0;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    margin-right: 20px;
+    font-weight: bold;
+}
+
+nav a:hover {
+    text-decoration: underline;
+}
+
+main {
+    padding: 30px;
+}
+
+.card {
+    background-color: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+th {
+    background-color: #e5e7eb;
+    text-align: left;
+}
+
+th,
+td {
+    padding: 12px;
+    border: 1px solid #d1d5db;
+}
+.button {
+    display: inline-block;
+    background-color: #1f2937;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 8px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.button:hover {
+    background-color: #374151;
+}
+
+.button.secondary {
+    background-color: #6b7280;
+}
+
+.error {
+    background-color: #fee2e2;
+    color: #991b1b;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #fecaca;
+}
+
+input,
+select,
+textarea {
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+textarea {
+    resize: vertical;
+}
+.message {
+    background-color: #dbeafe;
+    color: #1e3a8a;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #bfdbfe;
+}
+
+.success {
+    background-color: #dcfce7;
+    color: #166534;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #bbf7d0;
+}
+
+.button.danger {
+    background-color: #991b1b;
+}
+
+.button.danger:hover {
+    background-color: #7f1d1d;
+}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Lagerbestand - Wareneingangssystem{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Lagerbestand</h2>
+
+    <p>
+        Der Lagerbestand wird erst erhöht, wenn ein Wareneingang den Status
+        <strong>WARENEINGANG_GEBUCHT</strong> erreicht.
+    </p>
+
+    <p>
+        <a href="{{ url_for('main.component_movements') }}" class="button">
+            Bestandsbewegungen anzeigen
+        </a>
+    </p>
+
+    <table>
+        <tr>
+            <th>Komponentennummer</th>
+            <th>Name</th>
+            <th>Bestand</th>
+        </tr>
+
+        {% for component in components %}
+        <tr>
+            <td>{{ component.component_number }}</td>
+            <td>{{ component.name }}</td>
+            <td>{{ component.stock }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</section>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Wareneingang erfassen - Wareneingangssystem{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Wareneingang erfassen</h2>
+
+    <p>
+        <strong>Bestellung:</strong> {{ order.po_number }}<br>
+        <strong>Lieferant:</strong> {{ order.supplier.name }}
+    </p>
+
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+</section>
+
+<form method="post">
+    <section class="card">
+        <h3>Positionen</h3>
+
+        <table>
+            <tr>
+                <th>Komponente</th>
+                <th>Bestellt</th>
+                <th>Bisher geliefert</th>
+                <th>Noch offen</th>
+                <th>Jetzt geliefert</th>
+                <th>Zustand / Abweichung</th>
+            </tr>
+
+            {% for item in order.items %}
+            <tr>
+                <td>{{ item.component.name }}</td>
+                <td>{{ item.ordered_quantity }}</td>
+                <td>{{ item.received_quantity }}</td>
+                <td>{{ item.open_quantity }}</td>
+                <td>
+                    <input
+                        type="number"
+                        name="received_quantity_{{ item.id }}"
+                        min="0"
+                        value="0"
+                    >
+                </td>
+                <td>
+                    <select name="condition_{{ item.id }}">
+                        <option value="PRUEFUNG_AUSSTEHEND">Prüfung ausstehend</option>
+                        <option value="WARE_OK">Ware OK</option>
+                        <option value="BESCHAEDIGT">Beschädigt</option>
+                        <option value="FALSCHLIEFERUNG">Falschlieferung</option>
+                        <option value="UNVOLLSTAENDIG">Unvollständig</option>
+                        <option value="UEBERLIEFERUNG">Überlieferung</option>
+                        <option value="KOMBINIERTE_ABWEICHUNG">Kombinierte Abweichung</option>
+                    </select>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <br>
+
+        <label for="note"><strong>Notiz:</strong></label><br>
+        <textarea id="note" name="note" rows="4"></textarea>
+
+        <br><br>
+
+        <button type="submit" class="button">Wareneingang speichern</button>
+        <a href="{{ url_for('main.purchase_orders') }}" class="button secondary">Abbrechen</a>
+    </section>
+</form>
+{% endblock %}

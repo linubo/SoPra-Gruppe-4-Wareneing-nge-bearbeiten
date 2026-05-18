@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Lieferantenrechnung erfassen - Wareneingangssystem{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Lieferantenrechnung erfassen</h2>
+
+    <p>
+        <strong>Wareneingang:</strong> {{ receipt.receipt_number }}<br>
+        <strong>Bestellung:</strong> {{ receipt.purchase_order.po_number }}<br>
+        <strong>Lieferant:</strong> {{ receipt.purchase_order.supplier.name }}<br>
+        <strong>Wareneingangsstatus:</strong> {{ receipt.status }}
+    </p>
+
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+</section>
+
+<form method="post">
+    <section class="card">
+        <h3>Rechnungskopf</h3>
+
+        <label for="invoice_number"><strong>Rechnungsnummer:</strong></label><br>
+        <input
+            type="text"
+            id="invoice_number"
+            name="invoice_number"
+            placeholder="leer lassen für automatische Nummer"
+        >
+
+        <br><br>
+
+        <label for="invoice_date"><strong>Rechnungsdatum:</strong></label><br>
+        <input
+            type="date"
+            id="invoice_date"
+            name="invoice_date"
+            required
+        >
+
+        <br><br>
+
+        <label for="due_date"><strong>Fälligkeitsdatum:</strong></label><br>
+        <input
+            type="date"
+            id="due_date"
+            name="due_date"
+            required
+        >
+    </section>
+
+    <section class="card">
+        <h3>Rechnungspositionen</h3>
+
+        <p>
+            Die Positionen werden aus dem gebuchten Wareneingang übernommen.
+            Du gibst hier nur noch Preis, Rabatt und MwSt ein.
+        </p>
+
+        <table>
+            <tr>
+                <th>Komponente</th>
+                <th>Menge</th>
+                <th>Einzelpreis netto</th>
+                <th>Rabatt %</th>
+                <th>MwSt %</th>
+            </tr>
+
+            {% for item in receipt.items %}
+            <tr>
+                <td>{{ item.purchase_order_item.component.name }}</td>
+                <td>
+                    <input
+                        type="number"
+                        name="quantity_{{ item.id }}"
+                        value="{{ item.received_quantity }}"
+                        min="1"
+                        required
+                    >
+                </td>
+                <td>
+                    <input
+                        type="text"
+                        name="unit_price_{{ item.id }}"
+                        placeholder="z. B. 12,50"
+                        required
+                    >
+                </td>
+                <td>
+                    <input
+                        type="text"
+                        name="discount_{{ item.id }}"
+                        value="0"
+                        required
+                    >
+                </td>
+                <td>
+                    <input
+                        type="text"
+                        name="vat_{{ item.id }}"
+                        value="19"
+                        required
+                    >
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <br>
+
+        <button type="submit" class="button">Lieferantenrechnung speichern</button>
+        <a href="{{ url_for('main.invoices') }}" class="button secondary">Abbrechen</a>
+    </section>
+</form>
+{% endblock %}

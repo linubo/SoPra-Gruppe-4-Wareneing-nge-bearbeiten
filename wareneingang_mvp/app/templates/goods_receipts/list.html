@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Wareneingänge - Wareneingangssystem{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Wareneingänge</h2>
+
+    <p>
+        Neue Wareneingänge werden über eine vorhandene Bestellung erfasst.
+    </p>
+
+    <p>
+        <a href="{{ url_for('main.purchase_orders') }}" class="button">
+            Zu den Bestellungen
+        </a>
+    </p>
+
+    {% if receipts %}
+        <table>
+            <tr>
+                <th>Belegnummer</th>
+                <th>Bestellung</th>
+                <th>Lieferant</th>
+                <th>Datum</th>
+                <th>Status</th>
+                <th>Aktion</th>
+            </tr>
+
+            {% for receipt in receipts %}
+            <tr>
+                <td>{{ receipt.receipt_number }}</td>
+                <td>{{ receipt.purchase_order.po_number }}</td>
+                <td>{{ receipt.purchase_order.supplier.name }}</td>
+                <td>{{ receipt.receipt_date.strftime("%d.%m.%Y %H:%M") }}</td>
+                <td>{{ receipt.status }}</td>
+                <td>
+                    <a href="{{ url_for('main.goods_receipt_detail', receipt_id=receipt.id) }}">
+                        Details
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>Noch keine Wareneingänge erfasst.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Lieferantenrechnung Details - Wareneingangssystem{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Lieferantenrechnung {{ invoice.invoice_number }}</h2>
+
+    <p>
+        <strong>Status:</strong> {{ invoice.status }}<br>
+        <strong>Lieferant:</strong> {{ invoice.supplier.name }}<br>
+        <strong>Wareneingang:</strong>
+        <a href="{{ url_for('main.goods_receipt_detail', receipt_id=invoice.goods_receipt.id) }}">
+            {{ invoice.goods_receipt.receipt_number }}
+        </a><br>
+        <strong>Bestellung:</strong> {{ invoice.goods_receipt.purchase_order.po_number }}<br>
+        <strong>Rechnungsdatum:</strong> {{ invoice.invoice_date.strftime("%d.%m.%Y") }}<br>
+        <strong>Fälligkeitsdatum:</strong> {{ invoice.due_date.strftime("%d.%m.%Y") }}
+    </p>
+</section>
+
+<section class="card">
+    <h3>Rechnungspositionen</h3>
+
+    {% if invoice.items %}
+        <table>
+            <tr>
+                <th>Komponente</th>
+                <th>Menge</th>
+                <th>Einzelpreis netto</th>
+                <th>Rabatt %</th>
+                <th>MwSt %</th>
+                <th>Netto</th>
+                <th>MwSt</th>
+                <th>Brutto</th>
+            </tr>
+
+            {% for item in invoice.items %}
+            <tr>
+                <td>{{ item.component.name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ "%.2f"|format(item.unit_price) }} €</td>
+                <td>{{ "%.2f"|format(item.unit_discount_pct) }} %</td>
+                <td>{{ "%.2f"|format(item.unit_vat_pct) }} %</td>
+                <td>{{ "%.2f"|format(item.net_amount) }} €</td>
+                <td>{{ "%.2f"|format(item.vat_amount) }} €</td>
+                <td>{{ "%.2f"|format(item.gross_amount) }} €</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>
+            Diese Rechnung hat noch keine Positionsdaten. Das kann bei älteren Testrechnungen passieren.
+        </p>
+    {% endif %}
+</section>
+
+<section class="card">
+    <h3>Gesamtbeträge</h3>
+
+    <table>
+        <tr>
+            <th>Netto gesamt</th>
+            <th>MwSt gesamt</th>
+            <th>Brutto gesamt</th>
+        </tr>
+        <tr>
+            <td>{{ "%.2f"|format(invoice.total_net_amount) }} €</td>
+            <td>{{ "%.2f"|format(invoice.total_vat_amount) }} €</td>
+            <td>{{ "%.2f"|format(invoice.total_gross_amount) }} €</td>
+        </tr>
+    </table>
+</section>
+
+<section class="card">
+    <h3>Aktionen</h3>
+
+    {% if invoice.status == "ERFASST" %}
+        <form method="post" action="{{ url_for('main.transmit_invoice', invoice_id=invoice.id) }}">
+            <button type="submit" class="button">
+                An Buchhaltung übermitteln
+            </button>
+        </form>
+    {% endif %}
+
+    {% if invoice.status == "AN_BUCHHALTUNG_UEBERMITTELT" %}
+        <p class="success">
+            Diese Rechnung wurde bereits an die Buchhaltung übermittelt.
+
+            {% if invoice.transmitted_at %}
+                <br>
+                Übermittelt am: {{ invoice.transmitted_at.strftime("%d.%m.%Y %H:%M") }}
+            {% endif %}
+        </p>
+    {% endif %}
+</section>
+
+<p>
+    <a href="{{ url_for('main.invoices') }}" class="button">Zurück zu Lieferantenrechnungen</a>
+</p>
+{% endblock %}

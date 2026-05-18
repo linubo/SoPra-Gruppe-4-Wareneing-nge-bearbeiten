@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Wareneingangssystem{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<header>
+    <h1>Wareneingangssystem</h1>
+
+    <nav>
+        <a href="{{ url_for('main.index') }}">Startseite</a>
+        <a href="{{ url_for('main.purchase_orders') }}">Bestellungen</a>
+        <a href="{{ url_for('main.goods_receipts') }}">Wareneingänge</a>
+        <a href="{{ url_for('main.invoices') }}">Lieferantenrechnungen</a>
+        <a href="{{ url_for('main.stock') }}">Lagerbestand</a>
+        <a href="{{ url_for('main.component_movements') }}">Bestandsbewegungen</a>
+        <a href="{{ url_for('main.event_log') }}">Ereignisprotokoll</a>
+    </nav>
+</header>
+
+<main>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <section class="card">
+                {% for message in messages %}
+                    <p class="message">{{ message }}</p>
+                {% endfor %}
+            </section>
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</main>
+
+</body>
+</html>

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Bestellungen - Wareneingangssystem{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h2>Bestellungen</h2>
+
+    <p>
+        Hier sieht man die vorhandenen Bestellungen. Ein Wareneingang darf später nur
+        zu einer bestehenden Bestellung erfasst werden.
+    </p>
+</section>
+
+{% for order in orders %}
+<section class="card">
+    <h3>{{ order.po_number }}</h3>
+
+    <p>
+        <strong>Lieferant:</strong> {{ order.supplier.name }}<br>
+        <strong>Status:</strong> {{ order.status }}<br>
+        <strong>Bestellmenge gesamt:</strong> {{ order.total_ordered_quantity }}<br>
+        <strong>Bereits geliefert:</strong> {{ order.total_received_quantity }}<br>
+        <strong>Noch offen:</strong> {{ order.total_open_quantity }}
+    </p>
+
+    <p>
+        <a
+            href="{{ url_for('main.create_goods_receipt_view', order_id=order.id) }}"
+            class="button"
+        >
+            Wareneingang erfassen
+        </a>
+    </p>
+
+    <table>
+        <tr>
+            <th>Komponente</th>
+            <th>Bestellt</th>
+            <th>Geliefert</th>
+            <th>Noch offen</th>
+        </tr>
+
+        {% for item in order.items %}
+        <tr>
+            <td>{{ item.component.name }}</td>
+            <td>{{ item.ordered_quantity }}</td>
+            <td>{{ item.received_quantity }}</td>
+            <td>{{ item.open_quantity }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</section>
+{% endfor %}
+{% endblock %}
