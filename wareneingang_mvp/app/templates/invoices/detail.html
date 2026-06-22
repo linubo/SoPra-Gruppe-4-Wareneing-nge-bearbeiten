@@ -11,12 +11,18 @@
             <span class="status-badge status-{{ invoice.status|lower }}">
                 {{ invoice.status }}
         </span><br>
-        <strong>Lieferant:</strong> {{ invoice.supplier.name }}<br>
+        <strong>Lieferant:</strong>
+        {{ invoice.supplier.name if invoice.supplier else "Kein Lieferant" }}<br>
         <strong>Wareneingang:</strong>
-        <a href="{{ url_for('main.goods_receipt_detail', receipt_id=invoice.goods_receipt.id) }}">
-            {{ invoice.goods_receipt.receipt_number }}
-        </a><br>
-        <strong>Bestellung:</strong> {{ invoice.goods_receipt.purchase_order.po_number }}<br>
+        {% if invoice.goods_receipt %}
+            <a href="{{ url_for('main.goods_receipt_detail', receipt_id=invoice.goods_receipt.id) }}">
+                {{ invoice.goods_receipt.receipt_number }}
+            </a><br>
+        {% else %}
+            -<br>
+        {% endif %}
+        <strong>Bestellung:</strong>
+        {{ invoice.goods_receipt.purchase_order.order_number if invoice.goods_receipt and invoice.goods_receipt.purchase_order else "-" }}<br>
         <strong>Rechnungsdatum:</strong> {{ invoice.invoice_date.strftime("%d.%m.%Y") }}<br>
         <strong>Fälligkeitsdatum:</strong> {{ invoice.due_date.strftime("%d.%m.%Y") }}
     </p>

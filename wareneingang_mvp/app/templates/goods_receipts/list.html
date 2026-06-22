@@ -29,12 +29,21 @@
 
             {% for receipt in receipts %}
             <tr>
-                <td>{{ receipt.receipt_number }}</td>
-                <td>{{ receipt.purchase_order.po_number }}</td>
-                <td>{{ receipt.purchase_order.supplier.name }}</td>
-                <td>{{ receipt.receipt_date.strftime("%d.%m.%Y %H:%M") }}</td>
+                <td>{{ receipt.receipt_number or "-" }}</td>
+
                 <td>
-                    <span class="status-badge status-{{ receipt.status|lower }}">
+                    {{ receipt.purchase_order.order_number if receipt.purchase_order else receipt.purchase_order_id }}
+                </td>
+
+                <td>
+                    {{ receipt.purchase_order.supplier.name if receipt.purchase_order and receipt.purchase_order.supplier else "Kein Lieferant" }}
+                </td>
+
+                <td>
+                    {{ receipt.receipt_date.strftime("%d.%m.%Y %H:%M") if receipt.receipt_date else "-" }}
+                </td>
+                <td>
+                    <span class="status-badge status-{{ receipt.status }}">
                         {{ receipt.status }}
                     </span>
                 </td>

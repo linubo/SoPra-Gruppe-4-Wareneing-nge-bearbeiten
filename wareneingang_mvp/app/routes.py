@@ -5,6 +5,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 from sqlalchemy import text
 from sqlalchemy import text
+from types import SimpleNamespace
 
 from app.models import (
     PurchaseOrder,
@@ -29,6 +30,21 @@ from app.services import (
     update_goods_receipt_conditions_after_clarification,
     send_return_notification
 )
+
+STATUS_GR_ERFASST = 200
+STATUS_GR_IN_PRUEFUNG = 201
+STATUS_GR_GEBUCHT = 202
+STATUS_GR_IN_KLAERUNG = 204
+STATUS_GR_RETOURE = 205
+
+CONDITION_WARE_OK = 407
+CONDITION_PRUEFUNG_AUSSTEHEND = 408
+
+STATUS_INVOICE_ERFASST = 300
+STATUS_INVOICE_AN_BUCHHALTUNG = 301
+
+MOVEMENT_IN = 500
+MOVEMENT_OUT = 501
 
 main = Blueprint("main", __name__)
 
@@ -266,7 +282,7 @@ def invoices():
     ).all()
 
     booked_receipts = GoodsReceipt.query.filter_by(
-        status="WARENEINGANG_GEBUCHT"
+        status=STATUS_GR_GEBUCHT
     ).order_by(GoodsReceipt.receipt_date.desc()).all()
 
     available_receipts = [
@@ -355,7 +371,7 @@ def management_dashboard():
     )
 
     receipts_booked_count = GoodsReceipt.query.filter_by(
-        status="WARENEINGANG_GEBUCHT"
+        status=STATUS_GR_GEBUCHT
     ).count()
 
     receipts_returned_count = GoodsReceipt.query.filter_by(
@@ -385,15 +401,37 @@ def management_dashboard():
 
 @main.route("/retourenmeldungen")
 def return_notifications():
-    notifications = ReturnNotification.query.order_by(
-        ReturnNotification.created_at.desc()
-    ).all()
+    receipts = GoodsReceipt.query.filter_by(
+        status=STATUS_GR_RETOURE
+    ).order_by(GoodsReceipt.receipt_date.desc()).all()
+
+    return_notifications = []
+
+    for receipt in receipts:
+        supplier = (
+            receipt.purchase_order.supplier
+            if receipt.purchase_order and receipt.purchase_order.supplier
+            else SimpleNamespace(name="Kein Lieferant")
+        )
+
+        return_notifications.append(SimpleNamespace(
+            id=receipt.id,
+            return_number=f"RET-{receipt.id}",
+            goods_receipt=receipt,
+            supplier=supplier,
+            supplier_id=None,
+            reason="Retoure veranlasst",
+            message=f"Wareneingang {receipt.receipt_number or receipt.id} ist als Retoure markiert.",
+            status=receipt.status,
+            created_at=receipt.receipt_date,
+            sent_at=None
+        ))
 
     return render_template(
         "returns/list.html",
-        notifications=notifications
+        return_notifications=return_notifications,
+        returns=return_notifications
     )
-
 
 @main.route("/retourenmeldungen/<int:notification_id>")
 def return_notification_detail(notification_id):

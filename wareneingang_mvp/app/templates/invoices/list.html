@@ -26,9 +26,16 @@
 
             {% for receipt in available_receipts %}
             <tr>
-                <td>{{ receipt.receipt_number }}</td>
-                <td>{{ receipt.purchase_order.po_number }}</td>
-                <td>{{ receipt.purchase_order.supplier.name }}</td>
+                <td>{{ receipt.receipt_number or "-" }}</td>
+
+                <td>
+                    {{ receipt.purchase_order.order_number if receipt.purchase_order else receipt.purchase_order_id }}
+                </td>
+
+                <td>
+                    {{ receipt.purchase_order.supplier.name if receipt.purchase_order and receipt.purchase_order.supplier else "Kein Lieferant" }}
+                </td>
+
                 <td>{{ receipt.status }}</td>
                 <td>
                     {% if session.get("user_role", "lager") == "lager" %}
@@ -67,10 +74,19 @@
 
             {% for invoice in invoices %}
             <tr>
-                <td>{{ invoice.invoice_number }}</td>
-                <td>{{ invoice.goods_receipt.receipt_number }}</td>
-                <td>{{ invoice.supplier.name }}</td>
-                <td>{{ invoice.invoice_date.strftime("%d.%m.%Y") }}</td>
+                <td>{{ invoice.invoice_number or invoice.id }}</td>
+
+            <td>
+                {{ invoice.goods_receipt.receipt_number if invoice.goods_receipt else "-" }}
+            </td>
+
+            <td>
+                {{ invoice.supplier.name if invoice.supplier else "Kein Lieferant" }}
+            </td>
+
+            <td>
+                {{ invoice.invoice_date.strftime("%d.%m.%Y") if invoice.invoice_date else "-" }}
+            </td>
                 <td>{{ "%.2f"|format(invoice.total_gross_amount) }} €</td>
                 <td>
                     <span class="status-badge status-{{ invoice.status|lower }}">

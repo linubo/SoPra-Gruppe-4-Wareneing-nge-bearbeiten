@@ -7,9 +7,14 @@
     <h2>Lieferantenrechnung erfassen</h2>
 
     <p>
-        <strong>Wareneingang:</strong> {{ receipt.receipt_number }}<br>
-        <strong>Bestellung:</strong> {{ receipt.purchase_order.po_number }}<br>
-        <strong>Lieferant:</strong> {{ receipt.purchase_order.supplier.name }}<br>
+        <strong>Wareneingang:</strong> {{ receipt.receipt_number or "-" }}<br>
+
+        <strong>Bestellung:</strong>
+            {{ receipt.purchase_order.order_number if receipt.purchase_order else receipt.purchase_order_id }}<br>
+
+        <strong>Lieferant:</strong>
+            {{ receipt.purchase_order.supplier.name if receipt.purchase_order and receipt.purchase_order.supplier else "Kein Lieferant" }}<br>
+
         <strong>Wareneingangsstatus:</strong> {{ receipt.status }}
     </p>
 
@@ -70,7 +75,9 @@
 
             {% for item in receipt.items %}
             <tr>
-                <td>{{ item.purchase_order_item.component.name }}</td>
+                <td>
+                    {{ item.purchase_order_item.component.name if item.purchase_order_item and item.purchase_order_item.component else "Komponente unbekannt" }}
+                </td>
                 <td>
                     <input
                         type="number"
