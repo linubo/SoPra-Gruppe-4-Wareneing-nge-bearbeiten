@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Lieferantenrechnungen</h1>
+        <p>Übersicht aller erfassten Lieferantenrechnungen.</p>
+    </div>
+</div>
+
+<section class="form-card">
+    <h2>+ Lieferantenrechnung hinzufügen</h2>
+
+    <form method="POST" action="{{ url_for('supplier_invoice.supplier_invoices') }}">
+
+        <div class="form-row">
+            <label for="goods_receipt_id">Wareneingang auswählen</label>
+            <select name="goods_receipt_id" id="goods_receipt_id" required>
+                <option value="">Bitte Wareneingang auswählen</option>
+
+                {% for gr in goods_receipts %}
+                    <option value="{{ gr.GOODS_RECEIPT_ID }}">
+                        WE {{ gr.GOODS_RECEIPT_ID }} – PO {{ gr.PO_ID }} – Lieferant {{ gr.SUPPLIER_ID }} – {{ gr.STATUS_NAME }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <small class="hint">
+                PO_ID und SUPPLIER_ID werden aus dem ausgewählten Wareneingang übernommen.
+            </small>
+        </div>
+
+        <div class="form-row">
+            <label for="invoice_date">Rechnungsdatum</label>
+            <input type="date" name="invoice_date" id="invoice_date" required>
+        </div>
+
+        <div class="form-row">
+            <label for="due_date">Fälligkeitsdatum</label>
+            <input type="date" name="due_date" id="due_date" required>
+        </div>
+
+        <div class="form-row">
+            <label for="total_net_amount">Netto-Betrag</label>
+            <input type="number" step="0.01" name="total_net_amount" id="total_net_amount" required>
+        </div>
+
+        <div class="form-row">
+            <label for="total_vat_amount">Umsatzsteuerbetrag</label>
+            <input type="number" step="0.01" name="total_vat_amount" id="total_vat_amount" required>
+        </div>
+
+        <div class="form-row">
+            <label for="total_gross_amount">Brutto-Betrag</label>
+            <input type="number" step="0.01" name="total_gross_amount" id="total_gross_amount" required>
+
+            <small class="hint">
+                Der Brutto-Betrag wird automatisch aus Netto + Umsatzsteuer vorgeschlagen.
+            </small>
+        </div>
+
+        <button class="primary-button" type="submit">
+            Lieferantenrechnung speichern
+        </button>
+
+    </form>
+</section>
+
+<h2>Liste der Lieferantenrechnungen</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>INVOICE_ID</th>
+            <th>GOODS_RECEIPT_ID</th>
+            <th>PO_ID</th>
+            <th>SUPPLIER_ID</th>
+            <th>INVOICE_DATE</th>
+            <th>DUE_DATE</th>
+            <th>NETTO</th>
+            <th>MWST</th>
+            <th>BRUTTO</th>
+            <th>STATUS</th>
+            <th>STATUS_NAME</th>
+            <th>AKTIONEN</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for invoice in supplier_invoices %}
+        <tr>
+            <td>{{ invoice.INVOICE_ID }}</td>
+            <td>{{ invoice.GOODS_RECEIPT_ID }}</td>
+            <td>{{ invoice.PO_ID }}</td>
+            <td>{{ invoice.SUPPLIER_ID }}</td>
+            <td>{{ invoice.INVOICE_DATE }}</td>
+            <td>{{ invoice.DUE_DATE }}</td>
+            <td>{{ invoice.TOTAL_NET_AMOUNT }} €</td>
+            <td>{{ invoice.TOTAL_VAT_AMOUNT }} €</td>
+            <td>{{ invoice.TOTAL_GROSS_AMOUNT }} €</td>
+            <td>{{ invoice.INVOICE_STATUS }}</td>
+            <td>{{ invoice.INVOICE_STATUS_NAME }}</td>
+            <td>
+                {% if invoice.INVOICE_STATUS == 300 %}
+                    <form method="POST" action="{{ url_for('supplier_invoice.transmit_invoice', invoice_id=invoice.INVOICE_ID) }}">
+                        <button class="small-button" type="submit">
+                            Rechnung übermitteln
+                        </button>
+                    </form>
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+    function calculateGrossAmount() {
+        const netInput = document.getElementById("total_net_amount");
+        const vatInput = document.getElementById("total_vat_amount");
+        const grossInput = document.getElementById("total_gross_amount");
+
+        if (!netInput || !vatInput || !grossInput) {
+            return;
+        }
+
+        const netAmount = parseFloat(netInput.value);
+        const vatAmount = parseFloat(vatInput.value);
+
+        if (isNaN(netAmount) || isNaN(vatAmount)) {
+            grossInput.value = "";
+            return;
+        }
+
+        const grossAmount = netAmount + vatAmount;
+
+        grossInput.value = grossAmount.toFixed(2);
+    }
+
+    const netInput = document.getElementById("total_net_amount");
+    const vatInput = document.getElementById("total_vat_amount");
+
+    if (netInput) {
+        netInput.addEventListener("input", calculateGrossAmount);
+    }
+
+    if (vatInput) {
+        vatInput.addEventListener("input", calculateGrossAmount);
+    }
+</script>
+
+{% endblock %}
