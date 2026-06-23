@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Dashboard</h1>
+        <p>{{ current_role }}</p>
+    </div>
+</div>
+
+<section class="dashboard-grid">
+    <div class="summary-card">
+        <span>Wareneingänge</span>
+        <strong>{{ goods_receipts|length }}</strong>
+    </div>
+
+    <div class="summary-card">
+        <span>Kritische Fälle</span>
+        <strong>{{ critical_receipts|length }}</strong>
+    </div>
+
+    <div class="summary-card">
+        <span>Securitylevel</span>
+        <strong>{{ current_security_level }}</strong>
+    </div>
+</section>
+
+{% if current_role == "Management" or current_role == "Admin" %}
+    <h2>Kritische Fälle</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>GOODS_RECEIPT_ID</th>
+                <th>PO_ID</th>
+                <th>SUPPLIER_ID</th>
+                <th>STATUS</th>
+                <th>STATUS_NAME</th>
+                <th>AKTION</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for gr in critical_receipts %}
+            <tr>
+                <td>{{ gr.GOODS_RECEIPT_ID }}</td>
+                <td>{{ gr.PO_ID }}</td>
+                <td>{{ gr.SUPPLIER_ID }}</td>
+                <td>{{ gr.STATUS }}</td>
+                <td>{{ gr.STATUS_NAME }}</td>
+                <td>
+                    <a class="table-link" href="/wareneingang/details/{{ gr.GOODS_RECEIPT_ID }}">
+                        Details öffnen
+                    </a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6">Keine kritischen Fälle vorhanden.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
+{% if current_role == "Lager" or current_role == "Admin" %}
+    <div class="dashboard-actions">
+        <a class="primary-button action-link" href="{{ url_for('goods_receipt.goods_receipts') }}">
+            Wareneingang öffnen
+        </a>
+    </div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Wareneingang #{{ goods_receipt.GOODS_RECEIPT_ID }}</h1>
+        <p>Details des ausgewählten Wareneingangs.</p>
+    </div>
+
+    <a class="small-button action-link" href="{{ url_for('goods_receipt.goods_receipts') }}">
+        Zurück
+    </a>
+</div>
+
+<section class="detail-card">
+    <h2>Details</h2>
+
+    <div class="detail-grid">
+        <div><strong>GOODS_RECEIPT_ID:</strong> {{ goods_receipt.GOODS_RECEIPT_ID }}</div>
+        <div><strong>PO_ID:</strong> {{ goods_receipt.PO_ID }}</div>
+        <div><strong>SUPPLIER_ID:</strong> {{ goods_receipt.SUPPLIER_ID }}</div>
+        <div><strong>RECEIPT_DATE:</strong> {{ goods_receipt.RECEIPT_DATE }}</div>
+        <div><strong>DELIVERY_NOTE_NO:</strong> {{ goods_receipt.DELIVERY_NOTE_NO }}</div>
+        <div><strong>STATUS:</strong> {{ goods_receipt.STATUS }}</div>
+        <div><strong>STATUS_NAME:</strong> {{ goods_receipt.STATUS_NAME }}</div>
+    </div>
+
+    <div class="status-actions">
+
+    {% if goods_receipt.STATUS == 200 and can_edit_goods_receipt_items %}
+        <form method="POST" action="{{ url_for('goods_receipt.change_goods_receipt_status', goods_receipt_id=goods_receipt.GOODS_RECEIPT_ID) }}">
+            <input type="hidden" name="target_status" value="201">
+            <button class="small-button" type="submit">Prüfung starten</button>
+        </form>
+    {% endif %}
+
+    {% if goods_receipt.STATUS == 201 and can_edit_goods_receipt_items %}
+        <form method="POST" action="{{ url_for('goods_receipt.change_goods_receipt_status', goods_receipt_id=goods_receipt.GOODS_RECEIPT_ID) }}">
+            <input type="hidden" name="target_status" value="202">
+            <button class="small-button" type="submit">Wareneingang buchen</button>
+        </form>
+
+        <form method="POST" action="{{ url_for('goods_receipt.change_goods_receipt_status', goods_receipt_id=goods_receipt.GOODS_RECEIPT_ID) }}">
+            <input type="hidden" name="target_status" value="203">
+            <button class="small-button warning-button" type="submit">Abweichung dokumentieren</button>
+        </form>
+    {% endif %}
+
+    {% if goods_receipt.STATUS == 203 and can_edit_goods_receipt_items %}
+        <form method="POST" action="{{ url_for('goods_receipt.change_goods_receipt_status', goods_receipt_id=goods_receipt.GOODS_RECEIPT_ID) }}">
+            <input type="hidden" name="target_status" value="204">
+            <button class="small-button warning-button" type="submit">In Klärung geben</button>
+        </form>
+    {% endif %}
+
+    {% if goods_receipt.STATUS == 204 and can_make_management_decision %}
+        <form method="POST" action="{{ url_for('goods_receipt.change_goods_receipt_status', goods_receipt_id=goods_receipt.GOODS_RECEIPT_ID) }}">
+            <input type="hidden" name="target_status" value="202">
+            <button class="small-button" type="submit">Nach Klärung buchen</button>
+        </form>
+
+        <form method="POST" action="{{ url_for('goods_receipt.change_goods_receipt_status', goods_receipt_id=goods_receipt.GOODS_RECEIPT_ID) }}">
+            <input type="hidden" name="target_status" value="205">
+            <button class="small-button danger-button" type="submit">Retoure veranlassen</button>
+        </form>
+    {% endif %}
+
+    {% if goods_receipt.STATUS == 202 %}
+        <span class="status-note success-note">Wareneingang ist gebucht.</span>
+    {% endif %}
+
+    {% if goods_receipt.STATUS == 205 %}
+        <span class="status-note danger-note">Retoure wurde veranlasst. Kein Lagerzugang.</span>
+    {% endif %}
+
+    </div>
+
+    <hr>
+
+    {% if can_edit_goods_receipt_items %}
+    <h3>+ Wareneingangsposition hinzufügen</h3>
+
+    <form method="POST" action="{{ url_for('goods_receipt.add_goods_receipt_item', goods_receipt_id=goods_receipt.GOODS_RECEIPT_ID) }}">
+
+        <div class="form-row">
+            <label for="po_item_id">Artikel / Bestellposition</label>
+            <select name="po_item_id" id="po_item_id" required {% if not purchase_order_items %}disabled{% endif %}>
+                {% if purchase_order_items %}
+                <option value="">Bitte Artikel auswÃ¤hlen</option>
+
+                {% else %}
+                    <option value="">Keine offenen bestellten Artikel fuer diesen Wareneingang vorhanden</option>
+                {% endif %}
+
+                {% for order_item in purchase_order_items %}
+                    <option
+                        value="{{ order_item.PO_ITEM_ID }}"
+                        data-article="{{ order_item.ARTICLE }}"
+                        data-ordered-qty="{{ order_item.ORDERED_QTY }}"
+                    >
+                        {{ order_item.ARTICLE }} - PO_ITEM_ID {{ order_item.PO_ITEM_ID }} - bestellt: {{ order_item.ORDERED_QTY }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <input type="hidden" name="article" id="article">
+        <input type="hidden" name="ordered_qty" id="ordered_qty">
+
+        <div class="detail-grid selected-item-preview">
+            <div><strong>Artikel:</strong> <span id="selected_article">-</span></div>
+            <div><strong>Bestellte Menge:</strong> <span id="selected_ordered_qty">-</span></div>
+        </div>
+
+        <div class="form-row">
+            <label for="received_qty">Gelieferte Menge</label>
+            <input type="number" step="0.01" name="received_qty" id="received_qty" required>
+        </div>
+
+        <div class="form-row checkbox-row">
+            <label>
+                <input type="checkbox" id="damaged" name="damaged">
+                Ware beschädigt
+            </label>
+
+            <label>
+                <input type="checkbox" id="wrong_delivery" name="wrong_delivery">
+                Falschlieferung
+            </label>
+        </div>
+
+        <div class="form-row">
+            <label for="condition_id">Condition-Vorschlag</label>
+            <select name="condition_id" id="condition_id" required>
+                <option value="">Bitte Condition auswählen</option>
+
+                {% for condition in conditions %}
+                    <option value="{{ condition.CONDITION_ID }}">
+                        {{ condition.CONDITION_ID }} - {{ condition.CONDITION_NAME }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <small class="hint">
+                Die Condition wird automatisch vorgeschlagen, kann aber manuell geändert werden.
+            </small>
+        </div>
+
+        <button class="primary-button" type="submit" {% if not purchase_order_items %}disabled{% endif %}>
+            Position speichern
+        </button>
+
+    </form>
+    {% endif %}
+
+    <h3>Wareneingangspositionen</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>GOODS_RECEIPT_ITEM_ID</th>
+                <th>PO_ITEM_ID</th>
+                <th>Artikel</th>
+                <th>Bestellt</th>
+                <th>Geliefert</th>
+                <th>CONDITION_ID</th>
+                <th>CONDITION_NAME</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for item in goods_receipt_items %}
+            <tr>
+                <td>{{ item.GOODS_RECEIPT_ITEM_ID }}</td>
+                <td>{{ item.PO_ITEM_ID }}</td>
+                <td>{{ item.ARTICLE }}</td>
+                <td>{{ item.ORDERED_QTY }}</td>
+                <td>{{ item.RECEIVED_QTY }}</td>
+                <td>{{ item.CONDITION_ID }}</td>
+                <td>{{ item.CONDITION_NAME }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<script>
+    function suggestConditionId() {
+        const poItemSelect = document.getElementById("po_item_id");
+        const orderedQtyInput = document.getElementById("ordered_qty");
+        const receivedQtyInput = document.getElementById("received_qty");
+        const conditionSelect = document.getElementById("condition_id");
+        const damagedCheckbox = document.getElementById("damaged");
+        const wrongDeliveryCheckbox = document.getElementById("wrong_delivery");
+
+        if (!orderedQtyInput || !receivedQtyInput || !conditionSelect) {
+            return;
+        }
+
+        const orderedQty = parseFloat(orderedQtyInput.value);
+        const receivedQty = parseFloat(receivedQtyInput.value);
+        const damaged = damagedCheckbox && damagedCheckbox.checked;
+        const wrongDelivery = wrongDeliveryCheckbox && wrongDeliveryCheckbox.checked;
+
+        if (isNaN(orderedQty) || isNaN(receivedQty)) {
+            conditionSelect.value = "408";
+            return;
+        }
+
+        let suggestedConditionId = "408";
+
+        if (damaged && receivedQty !== orderedQty) {
+            suggestedConditionId = "406";
+        } else if (damaged) {
+            suggestedConditionId = "401";
+        } else if (wrongDelivery) {
+            suggestedConditionId = "402";
+        } else if (receivedQty < orderedQty) {
+            suggestedConditionId = "404";
+        } else if (receivedQty > orderedQty) {
+            suggestedConditionId = "405";
+        } else if (receivedQty === orderedQty) {
+            suggestedConditionId = "407";
+        }
+
+        conditionSelect.value = suggestedConditionId;
+    }
+
+    function updateSelectedOrderItem() {
+        const poItemSelect = document.getElementById("po_item_id");
+        const articleInput = document.getElementById("article");
+        const orderedQtyInput = document.getElementById("ordered_qty");
+        const selectedArticle = document.getElementById("selected_article");
+        const selectedOrderedQty = document.getElementById("selected_ordered_qty");
+
+        if (!poItemSelect || !articleInput || !orderedQtyInput) {
+            return;
+        }
+
+        const option = poItemSelect.options[poItemSelect.selectedIndex];
+        const article = option ? option.dataset.article || "" : "";
+        const orderedQty = option ? option.dataset.orderedQty || "" : "";
+
+        articleInput.value = article;
+        orderedQtyInput.value = orderedQty;
+
+        if (selectedArticle) {
+            selectedArticle.textContent = article || "-";
+        }
+
+        if (selectedOrderedQty) {
+            selectedOrderedQty.textContent = orderedQty || "-";
+        }
+
+        suggestConditionId();
+    }
+
+    const poItemSelect = document.getElementById("po_item_id");
+    const orderedQtyInput = document.getElementById("ordered_qty");
+    const receivedQtyInput = document.getElementById("received_qty");
+    const damagedCheckbox = document.getElementById("damaged");
+    const wrongDeliveryCheckbox = document.getElementById("wrong_delivery");
+
+    if (poItemSelect) {
+        poItemSelect.addEventListener("change", updateSelectedOrderItem);
+        updateSelectedOrderItem();
+    }
+
+    if (receivedQtyInput) {
+        receivedQtyInput.addEventListener("input", suggestConditionId);
+    }
+
+    if (damagedCheckbox) {
+        damagedCheckbox.addEventListener("change", suggestConditionId);
+    }
+
+    if (wrongDeliveryCheckbox) {
+        wrongDeliveryCheckbox.addEventListener("change", suggestConditionId);
+    }
+</script>
+
+{% endblock %}
