@@ -1,3 +1,14 @@
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Lokale .env laden
+load_dotenv()
+
+# Render Secret File laden
+render_env = Path("/etc/secrets/.env")
+if render_env.exists():
+    load_dotenv(render_env)
+
 from app import create_app
 
 app = create_app()
