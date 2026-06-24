@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="login-card">
+    <h1>Anmelden</h1>
+
+    <form method="POST" action="{{ url_for('auth.login', next=request.args.get('next')) }}">
+
+        <div class="form-row">
+            <label for="username">Benutzername</label>
+            <input type="text" name="username" id="username" value="{{ username or '' }}" required autofocus>
+        </div>
+
+        <div class="form-row">
+            <label for="password">Passwort</label>
+            <input type="password" name="password" id="password" required>
+        </div>
+
+        <div class="form-row">
+            <label for="role">Rolle</label>
+            <select name="role" id="role" required>
+                {% for role in roles %}
+                    <option value="{{ role }}" {% if role == selected_role %}selected{% endif %}>
+                        {{ role }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button class="primary-button full-width-button" type="submit">
+            Anmelden
+        </button>
+
+    </form>
+</section>
+
+{% endblock %}
