@@ -5,11 +5,11 @@
 <div class="page-header">
     <div>
         <h1>Wareneingang #{{ goods_receipt.GOODS_RECEIPT_ID }}</h1>
-        <p>Details des ausgewählten Wareneingangs.</p>
+        <p>Details des ausgew&auml;hlten Wareneingangs.</p>
     </div>
 
     <a class="small-button action-link" href="{{ url_for('goods_receipt.goods_receipts') }}">
-        Zurück
+        Zur&uuml;ck
     </a>
 </div>
 
@@ -20,7 +20,7 @@
         <div><strong>GOODS_RECEIPT_ID:</strong> {{ goods_receipt.GOODS_RECEIPT_ID }}</div>
         <div><strong>PO_ID:</strong> {{ goods_receipt.PO_ID }}</div>
         <div><strong>SUPPLIER_ID:</strong> {{ goods_receipt.SUPPLIER_ID }}</div>
-        <div><strong>RECEIPT_DATE:</strong> {{ goods_receipt.RECEIPT_DATE }}</div>
+        <div><strong>RECEIPT_DATE:</strong> {{ goods_receipt.RECEIPT_DATE|date_only }}</div>
         <div><strong>NOTIZ ZUR LIEFERUNG:</strong> {{ goods_receipt.DELIVERY_NOTE_NO }}</div>
         <div><strong>STATUS NR.:</strong> {{ goods_receipt.STATUS }}</div>
         <div><strong>STATUS:</strong> {{ goods_receipt.STATUS_NAME }}</div>
@@ -31,7 +31,7 @@
     {% if goods_receipt.STATUS == 200 and can_edit_goods_receipt_items %}
         <form method="POST" action="{{ url_for('goods_receipt.change_goods_receipt_status', goods_receipt_id=goods_receipt.GOODS_RECEIPT_ID) }}">
             <input type="hidden" name="target_status" value="201">
-            <button class="small-button" type="submit">Prüfung starten</button>
+            <button class="small-button" type="submit">Pr&uuml;fung starten</button>
         </form>
     {% endif %}
 
@@ -50,14 +50,14 @@
     {% if goods_receipt.STATUS == 203 and can_edit_goods_receipt_items %}
         <form method="POST" action="{{ url_for('goods_receipt.change_goods_receipt_status', goods_receipt_id=goods_receipt.GOODS_RECEIPT_ID) }}">
             <input type="hidden" name="target_status" value="204">
-            <button class="small-button warning-button" type="submit">In Klärung geben</button>
+            <button class="small-button warning-button" type="submit">In Kl&auml;rung geben</button>
         </form>
     {% endif %}
 
     {% if goods_receipt.STATUS == 204 and can_make_management_decision %}
         <form method="POST" action="{{ url_for('goods_receipt.change_goods_receipt_status', goods_receipt_id=goods_receipt.GOODS_RECEIPT_ID) }}">
             <input type="hidden" name="target_status" value="202">
-            <button class="small-button" type="submit">Nach Klärung buchen</button>
+            <button class="small-button" type="submit">Nach Kl&auml;rung buchen</button>
         </form>
 
         <form method="POST" action="{{ url_for('goods_receipt.change_goods_receipt_status', goods_receipt_id=goods_receipt.GOODS_RECEIPT_ID) }}">
@@ -78,8 +78,8 @@
 
     <hr>
 
-    {% if can_edit_goods_receipt_items %}
-    <h3>+ Wareneingangsposition hinzufügen</h3>
+    {% if can_edit_goods_receipt_items and (goods_receipt.STATUS|int) not in [202, 205] %}
+    <h3>+ Wareneingangsposition hinzuf&uuml;gen</h3>
 
     <form method="POST" action="{{ url_for('goods_receipt.add_goods_receipt_item', goods_receipt_id=goods_receipt.GOODS_RECEIPT_ID) }}">
 
@@ -87,7 +87,7 @@
             <label for="po_item_id">Artikel / Bestellposition</label>
             <select name="po_item_id" id="po_item_id" required {% if not purchase_order_items %}disabled{% endif %}>
                 {% if purchase_order_items %}
-                <option value="">Bitte Artikel auswÃ¤hlen</option>
+                <option value="">Bitte Artikel ausw&auml;hlen</option>
 
                 {% else %}
                     <option value="">Keine offenen bestellten Artikel fuer diesen Wareneingang vorhanden</option>
@@ -99,7 +99,7 @@
                         data-article="{{ order_item.ARTICLE }}"
                         data-ordered-qty="{{ order_item.ORDERED_QTY }}"
                     >
-                        {{ order_item.ARTICLE }} - PO_ITEM_ID {{ order_item.PO_ITEM_ID }} - bestellt: {{ order_item.ORDERED_QTY }}
+                        {{ order_item.ARTICLE }} - PO_ITEM_ID {{ order_item.PO_ITEM_ID }} - bestellt: {{ order_item.ORDERED_QTY }}{% if order_item.TOTAL_PRICE is not none %} - Preis: {{ order_item.TOTAL_PRICE|money }} €{% endif %}
                     </option>
                 {% endfor %}
             </select>
@@ -115,13 +115,13 @@
 
         <div class="form-row">
             <label for="received_qty">Gelieferte Menge</label>
-            <input type="number" step="0.01" name="received_qty" id="received_qty" required>
+            <input type="number" step="1" min="1" max="999999" name="received_qty" id="received_qty" required>
         </div>
 
         <div class="form-row checkbox-row">
             <label>
                 <input type="checkbox" id="damaged" name="damaged">
-                Ware beschädigt
+                Ware besch&auml;digt
             </label>
 
             <label>
@@ -133,7 +133,7 @@
         <div class="form-row">
             <label for="condition_id">KONDITION</label>
             <select name="condition_id" id="condition_id" required>
-                <option value="">Bitte Kondition auswählen</option>
+                <option value="">Bitte Kondition ausw&auml;hlen</option>
 
                 {% for condition in conditions %}
                     <option value="{{ condition.CONDITION_ID }}">
@@ -143,7 +143,7 @@
             </select>
 
             <small class="hint">
-                Die Kondition wird automatisch vorgeschlagen, kann aber manuell geändert werden.
+                Die Kondition wird automatisch vorgeschlagen, kann aber manuell ge&auml;ndert werden.
             </small>
         </div>
 
@@ -210,12 +210,12 @@
 
         let suggestedConditionId = "408";
 
-        if (damaged && receivedQty !== orderedQty) {
+        if (damaged && wrongDelivery) {
             suggestedConditionId = "406";
-        } else if (damaged) {
-            suggestedConditionId = "401";
         } else if (wrongDelivery) {
             suggestedConditionId = "402";
+        } else if (damaged) {
+            suggestedConditionId = "401";
         } else if (receivedQty < orderedQty) {
             suggestedConditionId = "404";
         } else if (receivedQty > orderedQty) {
@@ -256,6 +256,55 @@
         suggestConditionId();
     }
 
+    function sanitiseWholeReceivedQty() {
+        const receivedQtyInput = document.getElementById("received_qty");
+
+        if (!receivedQtyInput) {
+            return;
+        }
+
+        let cleanedValue = receivedQtyInput.value.replace(/\D/g, "");
+
+        if (cleanedValue === "0") {
+            cleanedValue = "";
+        }
+
+        if (parseInt(cleanedValue, 10) > 999999) {
+            cleanedValue = "999999";
+        }
+
+        receivedQtyInput.value = cleanedValue;
+        suggestConditionId();
+    }
+
+    function preventInvalidReceivedQtyKey(event) {
+        const allowedControlKeys = [
+            "Backspace",
+            "Delete",
+            "Tab",
+            "ArrowLeft",
+            "ArrowRight",
+            "Home",
+            "End",
+        ];
+
+        if (allowedControlKeys.includes(event.key) || event.metaKey || event.ctrlKey) {
+            return;
+        }
+
+        if (!/^\d$/.test(event.key)) {
+            event.preventDefault();
+        }
+    }
+
+    function preventInvalidReceivedQtyPaste(event) {
+        const pastedValue = (event.clipboardData || window.clipboardData).getData("text");
+
+        if (!/^\d+$/.test(pastedValue)) {
+            event.preventDefault();
+        }
+    }
+
     const poItemSelect = document.getElementById("po_item_id");
     const orderedQtyInput = document.getElementById("ordered_qty");
     const receivedQtyInput = document.getElementById("received_qty");
@@ -268,7 +317,9 @@
     }
 
     if (receivedQtyInput) {
-        receivedQtyInput.addEventListener("input", suggestConditionId);
+        receivedQtyInput.addEventListener("keydown", preventInvalidReceivedQtyKey);
+        receivedQtyInput.addEventListener("paste", preventInvalidReceivedQtyPaste);
+        receivedQtyInput.addEventListener("input", sanitiseWholeReceivedQty);
     }
 
     if (damagedCheckbox) {

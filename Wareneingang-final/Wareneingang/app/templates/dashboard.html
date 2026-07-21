@@ -11,12 +11,12 @@
 
 <section class="dashboard-grid">
     <div class="summary-card">
-        <span>Wareneingänge</span>
+        <span>Wareneing&auml;nge</span>
         <strong>{{ goods_receipts|length }}</strong>
     </div>
 
     <div class="summary-card">
-        <span>Kritische Fälle</span>
+        <span>Kritische F&auml;lle</span>
         <strong>{{ critical_receipts|length }}</strong>
     </div>
 
@@ -27,7 +27,7 @@
 </section>
 
 {% if can_make_management_decision %}
-    <h2>Kritische Fälle</h2>
+    <h2>Kritische F&auml;lle</h2>
 
     <table>
         <thead>
@@ -51,13 +51,13 @@
                 <td>{{ gr.STATUS_NAME }}</td>
                 <td>
                     <a class="table-link" href="/wareneingang/details/{{ gr.GOODS_RECEIPT_ID }}">
-                        Details öffnen
+                        Details &ouml;ffnen
                     </a>
                 </td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="6">Keine kritischen Fälle vorhanden.</td>
+                <td colspan="6">Keine kritischen F&auml;lle vorhanden.</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -67,7 +67,7 @@
 {% if can_view_goods_receipts %}
     <div class="dashboard-actions">
         <a class="primary-button action-link" href="{{ url_for('goods_receipt.goods_receipts') }}">
-            Wareneingang öffnen
+            Wareneingang &ouml;ffnen
         </a>
     </div>
 {% endif %}

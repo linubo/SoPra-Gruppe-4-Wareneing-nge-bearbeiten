@@ -80,7 +80,7 @@ def require_security_level(level):
         @login_required
         def decorated_function(*args, **kwargs):
             if current_security_level() < level:
-                flash("Keine Berechtigung für diese Funktion.", "error")
+                flash("Keine Berechtigung fuer diese Funktion.", "error")
                 return redirect(url_for("dashboard.dashboard"))
 
             return view_function(*args, **kwargs)
@@ -98,7 +98,7 @@ def require_roles(*roles):
         @login_required
         def decorated_function(*args, **kwargs):
             if current_security_level() < minimum_level:
-                flash("Keine Berechtigung für diese Funktion.", "error")
+                flash("Keine Berechtigung fuer diese Funktion.", "error")
                 return redirect(url_for("dashboard.dashboard"))
 
             return view_function(*args, **kwargs)
@@ -126,6 +126,10 @@ def can_make_management_decision():
 
 def can_view_admin_pages():
     return is_admin()
+
+
+def can_view_supplier_invoices():
+    return current_security_level() >= ROLE_SECURITY_LEVELS[MANAGEMENT_ROLE]
 
 
 def can_change_goods_receipt_status(current_status, target_status):
@@ -169,5 +173,6 @@ def auth_template_context():
         "can_create_goods_receipt": can_create_goods_receipt(),
         "can_edit_goods_receipt_items": can_edit_goods_receipt_items(),
         "can_make_management_decision": can_make_management_decision(),
+        "can_view_supplier_invoices": can_view_supplier_invoices(),
         "can_view_admin_pages": can_view_admin_pages(),
     }

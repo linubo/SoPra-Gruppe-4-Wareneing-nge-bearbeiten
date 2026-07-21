@@ -1,6 +1,9 @@
 from app.db import fetch_all, fetch_one, is_database_configured
 
 
+PO_STATUS_SENT_TO_SUPPLIER = 122
+
+
 purchase_orders = [
     {
         "PO_ID": 5001,
@@ -61,6 +64,8 @@ def _normalise_purchase_order_item(row):
         or f"Bestellposition {row['PO_ITEM_ID']}"
     )
     row["ORDERED_QTY"] = row.get("ORDERED_QTY") or row.get("QUANTITY") or 0
+    row["COMPONENT_PRICE"] = row.get("COMPONENT_PRICE")
+    row["TOTAL_PRICE"] = row.get("TOTAL_PRICE")
     return row
 
 
@@ -120,7 +125,9 @@ def _fetch_purchase_order_items_from_db(po_id):
                 COMPONENT_ID,
                 ARTICLE,
                 ORDERED_QTY,
-                PO_ITEM_STATUS
+                PO_ITEM_STATUS,
+                COMPONENT_PRICE,
+                TOTAL_PRICE
             FROM list_views.V_LIST_PO_ITEM_FOR_GOODS_RECEIPT
             WHERE PO_ID = ?
               AND ORDERED_QTY > 0
@@ -133,7 +140,9 @@ def _fetch_purchase_order_items_from_db(po_id):
                 po_item.ID_COMPONENT AS COMPONENT_ID,
                 component.COMPONENT_NAME AS ARTICLE,
                 po_item.QUANTITY AS ORDERED_QTY,
-                po_item.STATUS AS PO_ITEM_STATUS
+                po_item.STATUS AS PO_ITEM_STATUS,
+                po_item.COMPONENT_PRICE,
+                po_item.TOTAL_PRICE
             FROM dbo.T_PO_ITEMS po_item
             LEFT JOIN dbo.T_BIKE_COMPONENTS component
                 ON component.COMPONENT_ID = po_item.ID_COMPONENT
@@ -169,7 +178,9 @@ def _fetch_purchase_order_item_from_db(po_id, po_item_id):
                 COMPONENT_ID,
                 ARTICLE,
                 ORDERED_QTY,
-                PO_ITEM_STATUS
+                PO_ITEM_STATUS,
+                COMPONENT_PRICE,
+                TOTAL_PRICE
             FROM list_views.V_LIST_PO_ITEM_FOR_GOODS_RECEIPT
             WHERE PO_ID = ?
               AND PO_ITEM_ID = ?
@@ -182,7 +193,9 @@ def _fetch_purchase_order_item_from_db(po_id, po_item_id):
                 po_item.ID_COMPONENT AS COMPONENT_ID,
                 component.COMPONENT_NAME AS ARTICLE,
                 po_item.QUANTITY AS ORDERED_QTY,
-                po_item.STATUS AS PO_ITEM_STATUS
+                po_item.STATUS AS PO_ITEM_STATUS,
+                po_item.COMPONENT_PRICE,
+                po_item.TOTAL_PRICE
             FROM dbo.T_PO_ITEMS po_item
             LEFT JOIN dbo.T_BIKE_COMPONENTS component
                 ON component.COMPONENT_ID = po_item.ID_COMPONENT
@@ -221,7 +234,9 @@ def _fetch_purchase_order_item_by_item_id_from_db(po_item_id):
             po_item.ID_COMPONENT AS COMPONENT_ID,
             component.COMPONENT_NAME AS ARTICLE,
             po_item.QUANTITY AS ORDERED_QTY,
-            po_item.STATUS AS PO_ITEM_STATUS
+            po_item.STATUS AS PO_ITEM_STATUS,
+            po_item.COMPONENT_PRICE,
+            po_item.TOTAL_PRICE
         FROM dbo.T_PO_ITEMS po_item
         LEFT JOIN dbo.T_BIKE_COMPONENTS component
             ON component.COMPONENT_ID = po_item.ID_COMPONENT
@@ -250,6 +265,21 @@ def get_purchase_orders():
             return db_purchase_orders
 
     return purchase_orders
+
+
+def _is_sent_to_supplier_status(status):
+    return str(status).strip().lower() in {
+        str(PO_STATUS_SENT_TO_SUPPLIER),
+        "sent to supplier",
+        "sent_to_supplier",
+    }
+
+
+def get_purchase_orders_sent_to_supplier():
+    return [
+        purchase_order for purchase_order in get_purchase_orders()
+        if _is_sent_to_supplier_status(purchase_order.get("STATUS"))
+    ]
 
 
 def get_purchase_order_items(po_id):

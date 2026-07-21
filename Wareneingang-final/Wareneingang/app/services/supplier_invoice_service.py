@@ -12,6 +12,8 @@ SUPPLIER_INVOICE_STATUS_NAMES = {
     301: "AN BUCHHALTUNG UEBERMITTELT",
 }
 
+MAX_INVOICE_AMOUNT = 999999.99
+
 
 supplier_invoices = [
     {
@@ -46,7 +48,9 @@ supplier_invoices = [
 def _db_error(message, exc):
     print(message)
     print(exc)
-    return False, f"{message}: {exc}"
+    return False, (
+        f"{message}. Bitte pruefen Sie die Eingaben und versuchen Sie es erneut."
+    )
 
 
 def _parse_date(value, field_label):
@@ -193,6 +197,20 @@ def get_supplier_invoice_by_id(invoice_id):
     return None
 
 
+def _invoice_exists_for_goods_receipt(goods_receipt_id):
+    try:
+        goods_receipt_id = int(goods_receipt_id)
+
+    except (TypeError, ValueError):
+        return False
+
+    for invoice in get_all_supplier_invoices():
+        if int(invoice.get("GOODS_RECEIPT_ID") or 0) == goods_receipt_id:
+            return True
+
+    return False
+
+
 def _validate_invoice_dates(invoice_date, due_date):
     ok, parsed_invoice_date = _parse_date(invoice_date, "Das Rechnungsdatum")
 
@@ -221,6 +239,19 @@ def _validate_totals(total_net_amount, total_vat_amount, total_gross_amount):
 
     except (TypeError, ValueError):
         return False, "Netto, Umsatzsteuer und Brutto muessen gueltige Zahlen sein."
+
+    for amount in (total_net_amount, total_vat_amount, total_gross_amount):
+        if "." in str(amount) and len(str(amount).split(".")[-1]) > 2:
+            return False, "Netto, Umsatzsteuer und Brutto duerfen maximal zwei Nachkommastellen haben."
+
+    if net < 0 or vat < 0 or gross < 0:
+        return False, "Netto, Umsatzsteuer und Brutto duerfen nicht negativ sein."
+
+    if net == 0 or gross == 0:
+        return False, "Eine Lieferantenrechnung muss einen Betrag groesser als 0 haben."
+
+    if net > MAX_INVOICE_AMOUNT or vat > MAX_INVOICE_AMOUNT or gross > MAX_INVOICE_AMOUNT:
+        return False, "Netto, Umsatzsteuer und Brutto duerfen maximal 999999.99 betragen."
 
     if round(net + vat, 2) != round(gross, 2):
         return False, "Der Brutto-Betrag muss Netto-Betrag plus Umsatzsteuerbetrag entsprechen."
@@ -257,6 +288,9 @@ def create_supplier_invoice(
 
     if int(goods_receipt["STATUS"]) != 202:
         return False, "Eine Lieferantenrechnung darf nur zu einem gebuchten Wareneingang erfasst werden."
+
+    if _invoice_exists_for_goods_receipt(goods_receipt_id):
+        return False, "Zu diesem Wareneingang existiert bereits eine Lieferantenrechnung."
 
     supplier_id = _supplier_id_for_goods_receipt(goods_receipt)
 

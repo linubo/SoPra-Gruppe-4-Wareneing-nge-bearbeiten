@@ -1,3 +1,5 @@
+from datetime import date
+
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 
 from app.services.goods_receipt_service import (
@@ -8,7 +10,7 @@ from app.services.goods_receipt_service import (
     create_goods_receipt_item,
     update_goods_receipt_status,
 )
-from app.services.purchase_order_service import get_purchase_orders, get_purchase_order_items
+from app.services.purchase_order_service import get_purchase_orders_sent_to_supplier, get_purchase_order_items
 from app.services.condition_service import get_goods_conditions
 from app.auth import (
     can_change_goods_receipt_status,
@@ -32,7 +34,7 @@ def index():
 def goods_receipts():
     if request.method == "POST":
         if not can_create_goods_receipt():
-            flash("Keine Berechtigung für diese Funktion.", "error")
+            flash("Keine Berechtigung fuer diese Funktion.", "error")
             return redirect(url_for("goods_receipt.goods_receipts"))
 
         po_id = request.form.get("po_id")
@@ -51,7 +53,8 @@ def goods_receipts():
     return render_template(
         "goods_receipts.html",
         goods_receipts=get_all_goods_receipts(),
-        purchase_orders=get_purchase_orders()
+        purchase_orders=get_purchase_orders_sent_to_supplier(),
+        default_receipt_date=date.today().isoformat()
     )
 
 
@@ -105,7 +108,22 @@ def goods_receipt_detail(goods_receipt_id):
 @require_security_level(1)
 def add_goods_receipt_item(goods_receipt_id):
     if not can_edit_goods_receipt_items():
-        flash("Keine Berechtigung für diese Funktion.", "error")
+        flash("Keine Berechtigung fuer diese Funktion.", "error")
+        return redirect(
+            url_for(
+                "goods_receipt.goods_receipt_detail",
+                goods_receipt_id=goods_receipt_id
+            )
+        )
+
+    goods_receipt = get_goods_receipt_by_id(goods_receipt_id)
+
+    if goods_receipt is None:
+        flash("Wareneingang wurde nicht gefunden.", "error")
+        return redirect(url_for("goods_receipt.goods_receipts"))
+
+    if int(goods_receipt["STATUS"]) in (202, 205):
+        flash("Gebuchte oder abgeschlossene Wareneingaenge koennen nicht mehr bearbeitet werden.", "error")
         return redirect(
             url_for(
                 "goods_receipt.goods_receipt_detail",
@@ -152,7 +170,7 @@ def change_goods_receipt_status(goods_receipt_id):
         return redirect(url_for("goods_receipt.goods_receipts"))
 
     if not can_change_goods_receipt_status(goods_receipt["STATUS"], target_status):
-        flash("Keine Berechtigung für diese Funktion.", "error")
+        flash("Keine Berechtigung fuer diese Funktion.", "error")
         return redirect(
             url_for(
                 "goods_receipt.goods_receipt_detail",

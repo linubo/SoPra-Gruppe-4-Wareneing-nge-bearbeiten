@@ -76,14 +76,14 @@ def suggest_condition_id(ordered_qty, received_qty, damaged=False, wrong_deliver
     ordered_qty = float(ordered_qty)
     received_qty = float(received_qty)
 
-    if damaged and received_qty != ordered_qty:
+    if damaged and wrong_delivery:
         return 406
-
-    if damaged:
-        return 401
 
     if wrong_delivery:
         return 402
+
+    if damaged:
+        return 401
 
     if received_qty < ordered_qty:
         return 404

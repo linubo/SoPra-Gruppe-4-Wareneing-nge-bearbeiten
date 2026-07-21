@@ -27,8 +27,11 @@
             <a href="{{ url_for('goods_receipt.goods_receipts') }}">Wareneingang</a>
         {% endif %}
 
-        {% if can_view_admin_pages %}
+        {% if can_view_supplier_invoices %}
             <a href="{{ url_for('supplier_invoice.supplier_invoices') }}">Lieferantenrechnung</a>
+        {% endif %}
+
+        {% if can_view_admin_pages %}
             <a href="{{ url_for('db_status.db_status') }}">DB-Status</a>
         {% endif %}
 

@@ -68,7 +68,7 @@ CHECK (
     OR
     (
         RECEIVED_QTY = ORDERED_QTY
-        AND CONDITION_ID IN (401, 407, 408)
+        AND CONDITION_ID IN (401, 402, 407, 408)
     )
 );
 GO

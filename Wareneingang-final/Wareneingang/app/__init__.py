@@ -16,6 +16,30 @@ from app.auth import auth_template_context
 from app.routes.db_status_routes import db_status_bp
 
 
+def format_money(value):
+    try:
+        numeric_value = float(str(value).replace(",", "."))
+
+    except (TypeError, ValueError):
+        return value
+
+    formatted_value = f"{numeric_value:,.2f}"
+    return formatted_value.replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def format_date_only(value):
+    if value is None:
+        return ""
+
+    date_value = str(value).split(" ")[0]
+    parts = date_value.split("-")
+
+    if len(parts) == 3:
+        return f"{parts[2]}.{parts[1]}.{parts[0]}"
+
+    return date_value
+
+
 def create_app():
     app = Flask(__name__)
 
@@ -49,6 +73,8 @@ def create_app():
 
     # Wird später z. B. für Flash-Meldungen/Formulare gebraucht
     app.context_processor(auth_template_context)
+    app.jinja_env.filters["money"] = format_money
+    app.jinja_env.filters["date_only"] = format_date_only
 
     # Routen importieren
     from app.routes.auth_routes import auth_bp

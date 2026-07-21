@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal, InvalidOperation
 
 from flask import has_request_context
 
@@ -10,9 +11,11 @@ from app.services.db_check_service import (
     run_optional_db_check_with_cursor,
 )
 from app.services.purchase_order_service import (
+    PO_STATUS_SENT_TO_SUPPLIER,
     get_purchase_order_by_id,
     get_purchase_order_item,
     get_purchase_order_item_by_item_id,
+    get_purchase_order_items,
 )
 
 
@@ -25,8 +28,9 @@ GOODS_RECEIPT_STATUS_NAMES = {
     205: "RETOURE VERANLASST",
 }
 
+MAX_RECEIVED_QTY = 999999
 
-PO_STATUS_SENT_TO_SUPPLIER = 122
+
 PO_STATUS_FULLY_DELIVERED = 124
 
 
@@ -103,7 +107,20 @@ goods_receipt_items = [
 def _db_error(message, exc):
     print(message)
     print(exc)
-    return False, f"{message}: {exc}"
+    return False, f"{message}. Bitte pruefen Sie die Eingaben und versuchen Sie es erneut."
+
+
+def _parse_whole_quantity(value):
+    try:
+        quantity = Decimal(str(value).replace(",", "."))
+
+    except (InvalidOperation, TypeError, ValueError):
+        return False, None
+
+    if quantity != quantity.to_integral_value():
+        return False, None
+
+    return True, int(quantity)
 
 
 def _date_is_not_future(date_value, field_label):
@@ -112,6 +129,11 @@ def _date_is_not_future(date_value, field_label):
 
     except (TypeError, ValueError):
         return False, f"{field_label} ist kein gueltiges Datum."
+
+    first_day_current_year = date(date.today().year, 1, 1)
+
+    if parsed_date < first_day_current_year:
+        return False, f"{field_label} darf nicht vor dem aktuellen Geschaeftsjahr liegen."
 
     if parsed_date > date.today():
         return False, f"{field_label} darf nicht in der Zukunft liegen."
@@ -244,6 +266,8 @@ def get_all_goods_receipts():
 
 
 def create_goods_receipt(po_id, receipt_date, delivery_note_no):
+    delivery_note_no = delivery_note_no or ""
+
     try:
         po_id = int(po_id)
 
@@ -254,6 +278,9 @@ def create_goods_receipt(po_id, receipt_date, delivery_note_no):
 
     if purchase_order is None and not is_database_configured():
         return False, "Die ausgewaehlte Bestellung existiert nicht."
+
+    if purchase_order is not None and str(purchase_order.get("STATUS")).strip() != str(PO_STATUS_SENT_TO_SUPPLIER):
+        return False, "Wareneingaenge duerfen nur fuer Bestellungen mit Status 'sent to supplier' erfasst werden."
 
     ok, message = _date_is_not_future(receipt_date, "Das Wareneingangsdatum")
 
@@ -489,6 +516,9 @@ def create_goods_receipt_item(
     if goods_receipt is None:
         return False, "Der ausgewaehlte Wareneingang existiert nicht."
 
+    if int(goods_receipt["STATUS"]) in (202, 205):
+        return False, "Gebuchte oder abgeschlossene Wareneingaenge koennen nicht mehr bearbeitet werden."
+
     purchase_order_item = get_purchase_order_item(goods_receipt["PO_ID"], po_item_id)
 
     if purchase_order_item is None:
@@ -499,21 +529,31 @@ def create_goods_receipt_item(
 
     try:
         ordered_qty_value = float(ordered_qty)
-        received_qty_value = float(received_qty)
 
     except (TypeError, ValueError):
         return False, "Bestellte und gelieferte Menge muessen gueltige Zahlen sein."
 
+    is_whole_quantity, received_qty_value = _parse_whole_quantity(received_qty)
+
+    if not is_whole_quantity:
+        return False, "Bitte geben Sie bei der gelieferten Menge eine ganze Zahl ein."
+
     if ordered_qty_value <= 0:
         return False, "Die bestellte Menge muss groesser als 0 sein."
 
-    if received_qty_value < 0:
-        return False, "Die gelieferte Menge darf nicht negativ sein."
+    if received_qty_value <= 0:
+        return False, "Die gelieferte Menge muss groesser als 0 sein."
+
+    if received_qty_value > MAX_RECEIVED_QTY:
+        return False, "Die gelieferte Menge darf maximal 999999 betragen."
+
+    if wrong_delivery:
+        condition_id = 402
 
     if not condition_id:
         condition_id = suggest_condition_id(
             ordered_qty=ordered_qty,
-            received_qty=received_qty,
+            received_qty=received_qty_value,
             damaged=damaged,
             wrong_delivery=wrong_delivery
         )
@@ -527,7 +567,7 @@ def create_goods_receipt_item(
                 goods_receipt["PO_ID"],
                 po_item_id,
                 ordered_qty,
-                received_qty,
+                received_qty_value,
                 condition_id,
             ],
             "Wareneingangsposition wurde durch die DB validiert."
@@ -553,7 +593,7 @@ def create_goods_receipt_item(
                 goods_receipt["PO_ID"],
                 po_item_id,
                 ordered_qty,
-                received_qty,
+                received_qty_value,
                 condition_id,
             ])
 
@@ -577,7 +617,7 @@ def create_goods_receipt_item(
         "PO_ITEM_ID": int(po_item_id),
         "ARTICLE": article,
         "ORDERED_QTY": float(ordered_qty),
-        "RECEIVED_QTY": float(received_qty),
+        "RECEIVED_QTY": received_qty_value,
         "CONDITION_ID": condition_id,
         "CONDITION_NAME": get_condition_name(condition_id),
     }
@@ -608,6 +648,25 @@ def has_any_deviation(goods_receipt_id):
             return True
 
     return False
+
+
+def all_order_items_are_saved(goods_receipt):
+    purchase_order_items = get_purchase_order_items(goods_receipt["PO_ID"])
+
+    if not purchase_order_items:
+        return True
+
+    saved_po_item_ids = {
+        int(item["PO_ITEM_ID"])
+        for item in get_items_by_goods_receipt_id(goods_receipt["GOODS_RECEIPT_ID"])
+        if item.get("PO_ITEM_ID") is not None
+    }
+
+    for purchase_order_item in purchase_order_items:
+        if int(purchase_order_item["PO_ITEM_ID"]) not in saved_po_item_ids:
+            return False
+
+    return True
 
 
 def _po_status_for_goods_receipt_status(target_status):
@@ -698,6 +757,9 @@ def update_goods_receipt_status(goods_receipt_id, target_status):
 
     if target_status not in ALLOWED_STATUS_TRANSITIONS[current_status]:
         return False, "Dieser Statuswechsel ist fachlich nicht erlaubt."
+
+    if target_status == 202 and not all_order_items_are_saved(goods_receipt):
+        return False, "Der Wareneingang kann erst gebucht werden, wenn alle Bestellpositionen gespeichert wurden."
 
     if current_status == 201 and target_status == 202:
         if not all_items_are_ok(goods_receipt_id):
